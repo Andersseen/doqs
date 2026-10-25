@@ -53,7 +53,7 @@ export class DoqIndexComponent {
   readonly version = this.versionContext.version;
   readonly versions = this.versionContext.versions;
   readonly versioned = this.versionContext.versioned;
-  private readonly copy = resolveDoqCopy(this.config);
+  readonly copy = resolveDoqCopy(this.config);
   readonly navigation = injectDoqDocuments(this.config, this.version.id, this.catalog.locale.id || undefined);
   /** Every version leads to its own index from an index page, staying inside the active locale. */
   readonly versionLinks = this.versioned ? doqVersionLinks(this.versions, this.version.id, null, injectDoqCatalogs(this.config, this.catalog.locale.id || undefined)) : [];

@@ -14,9 +14,9 @@ export { DoqI18n } from './lib/doq-i18n';
 export { DoqPlaygroundComponent } from './lib/doq-playground.component';
 // Configuration and shared helpers live in the lightweight '@doqs/analog/config' entry; every name below is re-exported unchanged.
 export {
-  DOQ_CONFIG, defineDoqConfig, provideDoq, normalizeDoqPaths, doqPrerenderRoutes, joinDoqPath, normalizeDoqDocument, sortDoqDocuments, doqPrerenderRoute,
+  DOQ_CONFIG, defineDoqConfig, provideDoq, normalizeDoqPaths, normalizeDoqPathsFull, doqPrerenderRoutes, joinDoqPath, normalizeDoqDocument, sortDoqDocuments, doqPrerenderRoute,
   normalizeDoqSearchConfig, normalizeSearchResultUrl, DOQ_VERSION_FILTER, doqVersionLinks,
-  DOQ_LOCALE_FILTER, normalizeDoqI18n, getDoqCatalogs, findDoqCatalog, doqLocaleLinks, doqReservedSegments, assertDoqSlugAvailable, unlocalizedLocale,
+  DOQ_LOCALE_FILTER, normalizeDoqI18n, getDoqCatalogs, findDoqCatalog, doqLocaleLinks, doqReservedSegments, assertDoqSlugAvailable, unlocalizedLocale, joinDoqLocalePath,
   DOQ_I18N_ADAPTER, provideDoqI18n, DOQ_DEFAULT_MESSAGES, formatDoqMessage, createDoqStaticI18nAdapter,
   DOQ_DEFAULT_PREVIEW_SIZES, DOQ_PLAYGROUND_EVENT_LIMIT, formatDoqEventPayload, formatDoqUsage, validateDoqPlaygrounds,
 } from '@doqs/analog/config';

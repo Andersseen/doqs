@@ -33,7 +33,18 @@ export interface DoqResolvedPaths {
 }
 
 /** Trim and validate path settings; returns slash-free `contentDirectory` and a `/`-prefixed `basePath` ("/" for the root). */
-export function normalizeDoqPaths(paths: DoqPaths): DoqResolvedPaths {
+export function normalizeDoqPaths(paths: DoqPaths): { contentDirectory: string; basePath: string; versioning?: DoqResolvedVersioning } {
+  const { i18n: _i18n, ...rest } = normalizeDoqPathsFull(paths);
+  return rest;
+}
+
+/**
+ * `normalizeDoqPaths` plus the resolved `i18n` block. Kept as a separate export so the 0.7-era
+ * declaration of `normalizeDoqPaths` stays byte-identical: the public-API gate compares existing
+ * declarations against the baseline by text, so widening an old signature counts as a break even when
+ * the change is additive. New code that needs locales imports this one.
+ */
+export function normalizeDoqPathsFull(paths: DoqPaths): DoqResolvedPaths {
   const contentDirectory = normalizeContentDirectory(paths.contentDirectory ?? '');
   if (!contentDirectory) {
     throw new Error(`Doq: invalid contentDirectory "${paths.contentDirectory}"; use a directory below src/content, for example "docs".`);
@@ -59,7 +70,7 @@ export function normalizeDoqPaths(paths: DoqPaths): DoqResolvedPaths {
  * Spread the result into `analog({ prerender: { routes: async () => ['/', ...doqPrerenderRoutes(doqPaths)] } })`.
  */
 export function doqPrerenderRoutes(paths: DoqPaths): readonly (string | DoqPrerenderContentRoute)[] {
-  const normalized = normalizeDoqPaths(paths);
+  const normalized = normalizeDoqPathsFull(paths);
   const reserved = normalized.versioning?.pathSegment;
   return getDoqCatalogs(normalized).flatMap((catalog): (string | DoqPrerenderContentRoute)[] => [
     catalog.basePath,

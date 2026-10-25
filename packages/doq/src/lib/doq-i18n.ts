@@ -14,7 +14,7 @@ import {
   formatDoqMessage,
 } from '@doqs/analog/config';
 import { DOQ_CONFIG } from '@doqs/analog/config';
-import { normalizeDoqPaths } from '@doqs/analog/config';
+import { normalizeDoqPathsFull } from '@doqs/analog/config';
 import { resolveDoqCopy } from './doq-catalog';
 
 /**
@@ -37,7 +37,7 @@ import { resolveDoqCopy } from './doq-catalog';
 export class DoqI18n {
   private readonly config = inject(DOQ_CONFIG);
   private readonly adapter: DoqI18nAdapter | null = inject(DOQ_I18N_ADAPTER, { optional: true });
-  private readonly paths = normalizeDoqPaths(this.config);
+  private readonly paths = normalizeDoqPathsFull(this.config);
   readonly i18n: DoqResolvedI18n | undefined = this.paths.i18n;
   /** True when the configuration publishes more than one locale. */
   readonly localized = !!this.i18n && this.i18n.locales.length > 1;

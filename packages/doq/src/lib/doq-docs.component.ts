@@ -145,10 +145,12 @@ export class DoqDocsComponent {
       else if (focusWasInNavigation && !documentChanged) this.hostElement.querySelector<HTMLElement>('.doq-mobile-trigger')?.focus();
     }
   });
-  private readonly copy = resolveDoqCopy(this.config);
+  readonly copy = resolveDoqCopy(this.config);
   private readonly canonicalVersioning = normalizeDoqPaths(this.config).versioning;
   /** Every configured version, current first; the locale never changes this list. */
-  private readonly versions = getDoqVersions(normalizeDoqPaths(this.config));
+  readonly versions = getDoqVersions(normalizeDoqPaths(this.config));
+  readonly version = this.catalog.version;
+  readonly versionFilter = `doqsVersion:${this.version.id}`;
   readonly documents = this.unknownVersion() ? [] : injectDoqDocuments(this.config, this.catalog.version.id, this.catalog.locale.id || undefined);
   /** Catalogs of every version of *this* locale: the version switcher must never leave the language. */
   private readonly versionCatalogs = this.versioned && !this.unknownVersion() ? injectDoqCatalogs(this.config, this.catalog.locale.id || undefined) : {};
@@ -214,34 +216,38 @@ export class DoqDocsComponent {
     const slug = this.routeSlug();
     return !!slug && !this.documents.some(doc => doc.slug === slug) && this.fallbackDocument() !== null;
   });
+  /**
+   * Which catalog the routed slug resolves from: its own locale, or the default locale under an
+   * untranslated notice. Private, so the public `document` signal keeps its 0.11 shape exactly.
+   */
+  private readonly documentSource = computed(() => {
+    const slug = this.routeSlug();
+    if (this.unknownVersion() || !slug) return null;
+    const own = this.documents.find(doc => doc.slug === slug);
+    if (own) return { slug, directory: this.catalog.contentDirectory, basePath: this.catalog.basePath, translated: true };
+    if (this.fallbackDocument()) return { slug, directory: this.defaultLocaleDirectory(), basePath: this.defaultLocaleBasePath(), translated: false };
+    return null;
+  });
   readonly document = toSignal(this.route.paramMap.pipe(
     map(params => params.get(this.config.routeParam ?? 'slug') ?? ''),
     switchMap(slug => {
-      const entry = this.unknownVersion() ? undefined : this.documents.find(doc => doc.slug === slug);
-      // A localized URL with no translation of its own may serve the default locale's document, but only
-      // when the host configured that fallback; the notice keeps it from being silent.
-      const fallback = !entry && slug && this.i18n.i18n?.fallback === 'default-locale' && !this.catalog.locale.default
-        ? this.defaultLocaleDocuments().find(doc => doc.slug === slug)
-        : undefined;
-      const resolved = entry ?? fallback;
-      if (!slug || !resolved) return of(null);
+      const source = this.documentSource();
+      if (!source || source.slug !== slug) return of(null);
       // Analog's injectContentFilesMap intentionally re-keys loaders by the
       // frontmatter slug. The canonical catalog resolves that public slug to
       // its source entry; use the matching Analog alias to load its module.
-      const directory = entry ? this.catalog.contentDirectory : this.defaultLocaleDirectory();
-      const basePath = entry ? this.catalog.basePath : this.defaultLocaleBasePath();
-      const contentBase = `src/content/${directory}/${resolved.slug}`;
+      const contentBase = `src/content/${source.directory}/${source.slug}`;
       const candidates = new Set([`${contentBase}.md`, `${contentBase}/index.md`]);
-      const key = Object.keys(this.contentMap).find(candidate => candidates.has(this.canonicalFilename(candidate, directory)));
+      const key = Object.keys(this.contentMap).find(candidate => candidates.has(this.canonicalFilename(candidate, source.directory)));
       const load = key ? this.contentMap[key] : undefined;
       if (!load) return of(null);
       const clearPendingTask = this.pendingTasks.add();
       return from(load()).pipe(
         switchMap(raw => {
           const parsed = parseRawContentFile<DocAttributes>(raw);
-          return from(this.renderer.render(parsed.content)).pipe(map(rendered => ({ filename: resolved.sourceFilename, slug: resolved.slug, basePath, attributes: parsed.attributes, content: parsed.content, toc: rendered.toc, translated: !!entry })));
+          return from(this.renderer.render(parsed.content)).pipe(map(rendered => ({ filename: `${source.directory}/${source.slug}.md`, slug: source.slug, attributes: parsed.attributes, content: parsed.content, toc: rendered.toc })));
         }),
-        catchError(error => { console.error(`Doq: failed to resolve ${resolved.sourceFilename}`, error); return of(null); }),
+        catchError(error => { console.error(`Doq: failed to resolve src/content/${source.directory}/${source.slug}.md`, error); return of(null); }),
         finalize(clearPendingTask),
         startWith(undefined),
       );
@@ -273,7 +279,7 @@ export class DoqDocsComponent {
       this.metadata.setAlternates([]);
     } else {
       this.metadata.set(doqPageTitle(title, this.copy.pageTitleSuffix, label), doc?.attributes.description);
-      this.metadata.setCanonical(doqCanonicalUrl(this.canonicalVersioning, doc.basePath === '/' ? `/${this.routeSlug()}` : `${doc.basePath}/${this.routeSlug()}`));
+      this.metadata.setCanonical(doqCanonicalUrl(this.canonicalVersioning, this.documentBasePath() === '/' ? `/${this.routeSlug()}` : `${this.documentBasePath()}/${this.routeSlug()}`));
       this.metadata.setAlternates(this.hreflangAlternates(this.routeSlug()));
     }
   });
@@ -354,6 +360,8 @@ export class DoqDocsComponent {
   versionList() { return this.versions; }
   currentVersionLabel(): string { return this.versions[0]?.label ?? ''; }
   defaultLocaleLabel(): string { return this.i18n.i18n?.locales.find(locale => locale.default)?.label ?? ''; }
+  /** Mount path of the catalog the routed document actually came from, for its canonical URL. */
+  private documentBasePath(): string { return this.documentSource()?.basePath ?? this.catalog.basePath; }
   private defaultLocaleDirectory(): string { return this.i18n.defaultLocaleEntry?.contentDirectory ?? this.catalog.contentDirectory; }
   private defaultLocaleBasePath(): string {
     const paths = normalizeDoqPaths(this.config);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeDoqPaths, doqPrerenderRoutes } from '../../config/src/lib/doq-paths';
+import { normalizeDoqPaths, normalizeDoqPathsFull, doqPrerenderRoutes } from '../../config/src/lib/doq-paths';
 import {
   assertDoqSlugAvailable,
   DOQ_LOCALE_FILTER,
@@ -30,12 +30,12 @@ const versioning = {
 
 describe('UNIT-171 locale configuration validation (I18N-01, I18N-02)', () => {
   it('leaves an unlocalized configuration byte-identical to 0.11', () => {
-    expect(normalizeDoqPaths({ contentDirectory: 'docs' })).toEqual({ contentDirectory: 'docs', basePath: '/docs' });
-    expect('i18n' in normalizeDoqPaths({ contentDirectory: 'docs', basePath: '/' })).toBe(false);
+    expect(normalizeDoqPathsFull({ contentDirectory: 'docs' })).toEqual({ contentDirectory: 'docs', basePath: '/docs' });
+    expect('i18n' in normalizeDoqPathsFull({ contentDirectory: 'docs', basePath: '/' })).toBe(false);
   });
 
   it('resolves labels, prefixes and direction, keeping the default locale unprefixed', () => {
-    const resolved = normalizeDoqPaths({ contentDirectory: 'docs', i18n }).i18n!;
+    const resolved = normalizeDoqPathsFull({ contentDirectory: 'docs', i18n }).i18n!;
     expect(resolved.defaultLocale).toBe('en');
     expect(resolved.locales.map(locale => [locale.id, locale.label, locale.prefix, locale.contentDirectory, locale.dir, locale.default])).toEqual([
       ['en', 'English', '', 'docs', 'ltr', true],
@@ -72,7 +72,7 @@ describe('UNIT-171 locale configuration validation (I18N-01, I18N-02)', () => {
 });
 
 describe('UNIT-172 locale and version composition (I18N-05)', () => {
-  const paths = normalizeDoqPaths({ contentDirectory: 'docs', basePath: '/docs', versioning, i18n: { ...i18n, locales: [{ id: 'en', label: 'English' }, { id: 'es', label: 'Español', contentDirectory: 'docs-es', archives: { 1: 'docs-es-v1' } }] } });
+  const paths = normalizeDoqPathsFull({ contentDirectory: 'docs', basePath: '/docs', versioning, i18n: { ...i18n, locales: [{ id: 'en', label: 'English' }, { id: 'es', label: 'Español', contentDirectory: 'docs-es', archives: { 1: 'docs-es-v1' } }] } });
 
   it('produces one catalog per published locale and version, default locale first', () => {
     expect(getDoqCatalogs(paths).map(catalog => [catalog.locale.id, catalog.version.id, catalog.contentDirectory, catalog.basePath, catalog.current])).toEqual([
@@ -84,12 +84,12 @@ describe('UNIT-172 locale and version composition (I18N-05)', () => {
   });
 
   it('uses the configured version path segment inside every locale, never a hardcoded "v"', () => {
-    const custom = normalizeDoqPaths({ contentDirectory: 'docs', versioning: { ...versioning, pathSegment: 'old' }, i18n: { defaultLocale: 'en', locales: [{ id: 'en' }, { id: 'es', contentDirectory: 'docs-es', archives: { 1: 'docs-es-v1' } }] } });
+    const custom = normalizeDoqPathsFull({ contentDirectory: 'docs', versioning: { ...versioning, pathSegment: 'old' }, i18n: { defaultLocale: 'en', locales: [{ id: 'en' }, { id: 'es', contentDirectory: 'docs-es', archives: { 1: 'docs-es-v1' } }] } });
     expect(getDoqCatalogs(custom).map(catalog => catalog.basePath)).toEqual(['/docs', '/docs/old/1', '/es/docs', '/es/docs/old/1']);
   });
 
   it('omits a locale/version combination nobody publishes instead of borrowing another locale', () => {
-    const partial = normalizeDoqPaths({ contentDirectory: 'docs', versioning, i18n });
+    const partial = normalizeDoqPathsFull({ contentDirectory: 'docs', versioning, i18n });
     const catalogs = getDoqCatalogs(partial);
     // `es` and `uk` declare no archive directory, so the 0.11 archive exists for `en` only.
     expect(catalogs.map(catalog => catalog.basePath)).toEqual(['/docs', '/docs/v/1', '/es/docs', '/uk/docs']);
@@ -98,20 +98,20 @@ describe('UNIT-172 locale and version composition (I18N-05)', () => {
   });
 
   it('composes locales with a root-mounted documentation tree', () => {
-    const root = normalizeDoqPaths({ contentDirectory: 'docs', basePath: '/', i18n });
+    const root = normalizeDoqPathsFull({ contentDirectory: 'docs', basePath: '/', i18n });
     expect(getDoqCatalogs(root).map(catalog => catalog.basePath)).toEqual(['/', '/es', '/uk']);
   });
 
   it('rejects a locale id that collides with the version path segment', () => {
-    expect(() => normalizeDoqPaths({ contentDirectory: 'docs', versioning: { ...versioning, pathSegment: 'es' }, i18n })).toThrow(/collides with versioning\.pathSegment/);
+    expect(() => normalizeDoqPathsFull({ contentDirectory: 'docs', versioning: { ...versioning, pathSegment: 'es' }, i18n })).toThrow(/collides with versioning\.pathSegment/);
   });
 
   it('rejects a locale id that is not a usable BCP 47 primary subtag', () => {
-    expect(() => normalizeDoqPaths({ contentDirectory: 'docs', versioning, i18n: { defaultLocale: 'en', locales: [{ id: 'en' }, { id: 'v', contentDirectory: 'docs-v' }] } })).toThrow(/invalid locale id/);
+    expect(() => normalizeDoqPathsFull({ contentDirectory: 'docs', versioning, i18n: { defaultLocale: 'en', locales: [{ id: 'en' }, { id: 'v', contentDirectory: 'docs-v' }] } })).toThrow(/invalid locale id/);
   });
 
   it('keeps an unlocalized versioned tree exactly as 0.11 produced it', () => {
-    const unlocalized = normalizeDoqPaths({ contentDirectory: 'docs', basePath: '/docs', versioning });
+    const unlocalized = normalizeDoqPathsFull({ contentDirectory: 'docs', basePath: '/docs', versioning });
     expect(getDoqCatalogs(unlocalized).map(catalog => catalog.basePath)).toEqual(getDoqVersions(unlocalized).map(version => version.basePath));
     expect(getDoqCatalogs(unlocalized).every(catalog => catalog.locale.id === '')).toBe(true);
     expect(unlocalizedLocale('docs')).toMatchObject({ id: '', prefix: '', default: true });
@@ -137,8 +137,8 @@ describe('UNIT-173 prerender routes for localized trees (I18N-04)', () => {
 });
 
 describe('UNIT-174 translation identity and missing translations (I18N-06)', () => {
-  const resolved = normalizeDoqPaths({ contentDirectory: 'docs', i18n }).i18n!;
-  const version = getDoqVersions(normalizeDoqPaths({ contentDirectory: 'docs' }))[0]!;
+  const resolved = normalizeDoqPathsFull({ contentDirectory: 'docs', i18n }).i18n!;
+  const version = getDoqVersions(normalizeDoqPathsFull({ contentDirectory: 'docs' }))[0]!;
   const catalogs = { en: [{ slug: 'getting-started' }, { slug: 'guides/routing' }], es: [{ slug: 'getting-started' }], uk: [] };
 
   it('links a locale that publishes the same slug to that slug', () => {
@@ -167,7 +167,7 @@ describe('UNIT-174 translation identity and missing translations (I18N-06)', () 
   });
 
   it('resolves the fallback mode but never lets it change where a locale link points', () => {
-    const withFallback = normalizeDoqPaths({ contentDirectory: 'docs', i18n: { ...i18n, fallback: 'default-locale' } }).i18n!;
+    const withFallback = normalizeDoqPathsFull({ contentDirectory: 'docs', i18n: { ...i18n, fallback: 'default-locale' } }).i18n!;
     expect(withFallback.fallback).toBe('default-locale');
     expect(resolved.fallback).toBe('none');
     // Serving English under a Spanish URL is a property of the rendered page, so the switcher links are
@@ -180,7 +180,7 @@ describe('UNIT-174 translation identity and missing translations (I18N-06)', () 
   it('reserves every non-default locale id against current-version slugs', () => {
     expect(doqReservedSegments(resolved, undefined)).toEqual(['es', 'uk']);
     expect(doqReservedSegments(undefined, undefined)).toEqual([]);
-    expect(doqReservedSegments(resolved, normalizeDoqPaths({ contentDirectory: 'docs', versioning, i18n }).versioning)).toEqual(['v', 'es', 'uk']);
+    expect(doqReservedSegments(resolved, normalizeDoqPathsFull({ contentDirectory: 'docs', versioning, i18n }).versioning)).toEqual(['v', 'es', 'uk']);
     expect(() => assertDoqSlugAvailable('es/fake', ['es', 'uk'], 'src/content/docs/es/fake.md')).toThrow(/reserved URL prefix "es\/"/);
     expect(() => assertDoqSlugAvailable('ES/fake', ['es'], 'x.md')).toThrow(/reserved URL prefix/);
     expect(() => assertDoqSlugAvailable('getting-started', ['es', 'uk'], 'x.md')).not.toThrow();
