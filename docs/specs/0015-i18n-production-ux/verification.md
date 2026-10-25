@@ -60,6 +60,33 @@ documentation alone: `@analogjs/content@2.9.0`'s `package.json` peer list and
 `pagefind@1.5.2`'s `types/index.d.ts`. Paths and quotations are in
 [research/external-findings.md](research/external-findings.md).
 
+## Performance budgets raised, with measured evidence
+
+`pnpm perf:check` failed on CI (run 40228539113) for eight budgets because this branch ships real new
+code and CSS: the three-column sticky documentation layout and its `--host-docs-sticky-offset` /
+`--host-docs-toc-width` tokens grow `packages/doq/styles.css`, and the docs chunk gains the `DoqI18n`
+service, the locale switcher and the (locale, version) catalog resolution. No documentation content was
+added, so `staticPages` and `searchIndexBytes` are untouched.
+
+Measured on CI (ubuntu, node 22), old max → new measured value:
+
+| Target / metric           | old max | measured | new baseline / max |
+| ------------------------- | ------- | -------- | ------------------ |
+| doq-core stylesGzip       | 6300    | 6944     | 6944 / 7291        |
+| doq-core stylesBytes      | 32800   | 35452    | 35452 / 37225      |
+| showcase-a initialJsGzip  | 212400  | 216845   | 216845 / 227687    |
+| showcase-a allJsGzip      | 234200  | 235977   | 235977 / 247776    |
+| showcase-a initialCssGzip | 15400   | 15463    | 15463 / 16236      |
+| showcase-b initialJsGzip  | 195200  | 200586   | 200586 / 210615    |
+| showcase-b allJsGzip      | 214900  | 217187   | 217187 / 228046    |
+| site allJsGzip            | 332900  | 336123   | 336123 / 352929    |
+
+The same justification is recorded in each entry's `reason` in `perf-budgets.json`, per that file's own
+rule that a budget may only be raised in a pull request whose verification report explains why. Local
+`pnpm perf:check` after the raise reports every metric `ok` (exit 0); note the local macOS gzip figures
+run a few percent under the CI ones (for example showcase-b initialJsGzip 194,978 locally against 200,586
+on CI), which is why the new maxima carry 5% headroom above the CI-measured baseline.
+
 ## Remaining limitations
 
 **Not verified by any test on this branch.** AC-007 through AC-010 are implemented but unproven. No
