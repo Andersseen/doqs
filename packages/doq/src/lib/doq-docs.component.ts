@@ -414,6 +414,9 @@ export class DoqDocsComponent {
     }
     if (target) target.scrollIntoView?.({ block: 'start' });
     else if (focusTarget) view?.scrollTo(0, 0);
+    // Following a fragment (TOC link, search result, deep link) must highlight that heading at once;
+    // waiting for the scroll-spy observer leaves the previous heading lit until the scroll settles.
+    if (target && this.headings().some(heading => heading.id === target.id)) this.activeHeading.set(target.id);
     if (!focusTarget) return;
     const focusable = target ?? this.hostElement.querySelector<HTMLElement>('.doq-doc-header h1');
     if (!focusable) return;

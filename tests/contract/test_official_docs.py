@@ -53,7 +53,9 @@ def test_contract_080_every_markdown_file_is_a_prerendered_page_with_real_conten
         article = re.search(r'<article[^>]*data-pagefind-body[^>]*>(.*?)</article>', html, re.S)
         assert article, f"{route} has no indexed article"
         text = re.sub(r"<[^>]+>", " ", article.group(1))
-        assert len(text.split()) > 60, f"{route} renders almost no text"
+        # 0.12 moved the "On this page" rail out of the indexed article, so the measured text is the
+        # document body alone; the floor is recalibrated from 60 to 40 words of real content.
+        assert len(text.split()) > 40, f"{route} renders almost no text"
         assert "ng-server-context" in html, f"{route} was not server-rendered"
     assert "Documentation page not found" not in "".join(_html(site_official, route) for route in routes)
 
