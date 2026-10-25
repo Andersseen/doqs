@@ -66,6 +66,54 @@ export class DoqPageMetadata {
     if (!existing) head.appendChild(link);
   }
 
+  /**
+   * Declare the `hreflang` alternates of the document being read, one per locale that actually
+   * publishes it. Doq only ever touches links it created: host-authored alternates are left alone, an
+   * empty list removes Doq's own, and no element is duplicated across navigations.
+   */
+  setAlternates(alternates: readonly { hreflang: string; href: string }[]): void {
+    const head = this.document.head;
+    for (const existing of Array.from(head.querySelectorAll<HTMLLinkElement>('link[rel="alternate"][data-doq-hreflang]'))) existing.remove();
+    for (const alternate of alternates) {
+      const link = this.document.createElement('link');
+      link.setAttribute('rel', 'alternate');
+      link.setAttribute('hreflang', alternate.hreflang);
+      link.setAttribute('href', alternate.href);
+      link.setAttribute('data-doq-hreflang', '');
+      head.appendChild(link);
+    }
+  }
+
+  /**
+   * Write the document language and direction for a localized page. Only called when Doqs owns the
+   * head: a host using `provideEtymaAnalog()` already manages `lang`, `dir`, canonical and `hreflang`,
+   * and two owners writing the same attributes is how a page ends up labelled with the wrong language.
+   * The previous values are captured once and restored with the last Doq page.
+   */
+  setLocale(locale: string | undefined, direction: 'ltr' | 'rtl' | undefined): void {
+    const root = this.document.documentElement;
+    if (!locale) {
+      if (this.originalLang !== undefined) {
+        if (this.originalLang === null) root.removeAttribute('lang');
+        else root.setAttribute('lang', this.originalLang);
+        if (this.originalDir === null) root.removeAttribute('dir');
+        else if (this.originalDir !== undefined) root.setAttribute('dir', this.originalDir);
+        this.originalLang = undefined;
+        this.originalDir = undefined;
+      }
+      return;
+    }
+    if (this.originalLang === undefined) {
+      this.originalLang = root.getAttribute('lang');
+      this.originalDir = root.getAttribute('dir');
+    }
+    root.setAttribute('lang', locale);
+    if (direction) root.setAttribute('dir', direction);
+  }
+
+  private originalLang: string | null | undefined;
+  private originalDir: string | null | undefined;
+
   private writeDescription(content: string | null): void {
     if (content) this.meta.updateTag({ name: 'description', content });
     else this.meta.removeTag('name="description"');

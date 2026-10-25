@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input, output, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { DoqVersionLink } from '@doqs/analog/config';
+import { DoqI18n } from './doq-i18n';
 
 /**
  * Version selector: a native disclosure whose items are real links, so every destination is a prerendered URL that also works
@@ -13,13 +14,13 @@ import { DoqVersionLink } from '@doqs/analog/config';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <details #disclosure class="doq-version" data-pagefind-ignore (keydown.escape)="close(true)">
-      <summary class="doq-version-summary"><span class="doq-version-prefix">Version</span> <strong>{{ active()?.label }}</strong></summary>
-      <ul class="doq-version-list" aria-label="Documentation versions">
+      <summary class="doq-version-summary"><span class="doq-version-prefix">{{ i18n.t('version.prefix') }}</span> <strong>{{ active()?.label }}</strong></summary>
+      <ul class="doq-version-list" [attr.aria-label]="i18n.t('version.listLabel')">
         @for (item of versions(); track item.id) {
           <li>
-            <a class="doq-version-link" [routerLink]="item.href" [attr.aria-current]="item.active ? 'true' : null" [class.is-active]="item.active" (click)="select()">
+            <a class="doq-version-link" [routerLink]="i18n.localize(item.href)" [attr.aria-current]="item.active ? 'true' : null" [class.is-active]="item.active" (click)="select()">
               <span>{{ item.label }}</span>
-              <small>{{ item.current ? 'current' : 'archived' }}@if (!item.sameDocument) { · opens the index }</small>
+              <small>{{ item.current ? i18n.t('version.current') : i18n.t('version.archived') }}@if (!item.sameDocument) { {{ i18n.t('version.opensIndex') }} }</small>
             </a>
           </li>
         }
@@ -31,6 +32,7 @@ export class DoqVersionSwitcherComponent {
   readonly versions = input.required<readonly DoqVersionLink[]>();
   /** Emitted after a version link was chosen, so a containing drawer can close. */
   readonly chosen = output<void>();
+  readonly i18n = inject(DoqI18n);
   readonly active = computed(() => this.versions().find(item => item.active));
   private readonly disclosure = viewChild.required<ElementRef<HTMLDetailsElement>>('disclosure');
 

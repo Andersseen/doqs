@@ -15,7 +15,11 @@
   --doq-playground-surface: var(--host-docs-playground-surface, var(--doq-surface));
   --doq-playground-text: color-mix(in srgb,var(--doq-foreground) 80%,var(--doq-playground-surface));
   --doq-playground-preview: var(--host-docs-playground-preview, var(--doq-background));
-  --doq-scroll-offset: var(--host-docs-scroll-offset, 2rem);
+  --doq-scroll-offset: var(--host-docs-scroll-offset, calc(var(--doq-sticky-offset) + 1.5rem));
+  /* Distance a sticky rail keeps from the top of the viewport. A host with its own sticky header sets
+     --host-docs-sticky-offset (for example 64px) and the rails clear it without touching any selector. */
+  --doq-sticky-offset: var(--host-docs-sticky-offset, 1rem);
+  --doq-toc-width: var(--host-docs-toc-width, 13rem);
   --doq-callout-note: var(--host-docs-callout-note, #2f6fdd);
   --doq-callout-tip: var(--host-docs-callout-tip, #1f8a5b);
   --doq-callout-important: var(--host-docs-callout-important, #7c4dd6);
@@ -37,12 +41,24 @@
 .doq-shell-footer { display: flex; justify-content: space-between; gap: 1rem; padding: 1.4rem clamp(1.25rem,4vw,3.5rem); border-top: 1px solid var(--doq-border); color: var(--doq-muted); font-size: .8rem; }
 .doq-root a,.doq-index a { color: inherit; text-decoration: none; }
 .doq-root a:focus-visible,.doq-index a:focus-visible,.doq-root button:focus-visible,.doq-root select:focus-visible { outline: 3px solid var(--doq-focus); outline-offset: 3px; }
-.doq-root { display: grid; grid-template-columns: var(--doq-sidebar-width) minmax(0,1fr); gap: clamp(2rem,5vw,5rem); padding: 2rem clamp(1.25rem,4vw,4rem) 5rem; }
+/* Documentation layout: a grid whose rails stick and whose article scrolls.
+   DOM order is sidebar, TOC, article. At medium widths the TOC sits above the article in the content
+   column, so visual order matches DOM order; at wide widths it moves to its own third column. */
+.doq-root { display: grid; grid-template-columns: var(--doq-sidebar-width) minmax(0,1fr); gap: clamp(1.5rem,4vw,4rem); align-items: start; max-width: calc(var(--doq-content-width) + var(--doq-sidebar-width) + var(--doq-toc-width) + 14rem); margin-inline: auto; padding: 2rem clamp(1.25rem,4vw,4rem) 5rem; }
+.doq-root > .doq-sidebar { grid-column: 1; grid-row: 1 / span 2; }
+.doq-root > .doq-toc { grid-column: 2; grid-row: 1; }
+.doq-root > .doq-article { grid-column: 2; grid-row: 2; }
+.doq-root[data-toc="none"] > .doq-article { grid-row: 1; }
 .doq-root[data-sidebar="hidden"] { grid-template-columns: minmax(0,1fr); }
 .doq-root[data-sidebar="hidden"] .doq-sidebar,.doq-root[data-sidebar="hidden"] .doq-mobile-trigger { display: none; }
+.doq-root[data-sidebar="hidden"] > .doq-toc,.doq-root[data-sidebar="hidden"] > .doq-article { grid-column: 1; }
 .doq-root[data-sidebar="right"] { grid-template-columns: minmax(0,1fr) var(--doq-sidebar-width); }
-.doq-root[data-sidebar="right"] .doq-sidebar { grid-column:2; grid-row:1; }
-.doq-sidebar { position: sticky; top: 1rem; align-self: start; max-height: calc(100vh - 2rem); overflow: auto; padding: .5rem .75rem .5rem 0; font-size: .875rem; }
+.doq-root[data-sidebar="right"] > .doq-sidebar { grid-column: 2; grid-row: 1 / span 2; }
+.doq-root[data-sidebar="right"] > .doq-toc,.doq-root[data-sidebar="right"] > .doq-article { grid-column: 1; }
+/* The sticky rails: each sticks inside its own grid area, which spans the full height of the article, so
+   a rail never slides over the footer and never needs position:fixed or a scroll listener. */
+.doq-sidebar { position: sticky; top: var(--doq-sticky-offset); align-self: start; max-height: calc(100vh - (2 * var(--doq-sticky-offset)) - 2rem); overflow: auto; overscroll-behavior: contain; padding: .5rem .75rem .5rem 0; font-size: .875rem; }
+@supports (height: 100dvh) { .doq-sidebar { max-height: calc(100dvh - (2 * var(--doq-sticky-offset)) - 2rem); } }
 .doq-mobile-trigger { display: none; }
 .doq-mobile-close { display: none; }
 .doq-overview { display: block; padding: .7rem .8rem; border-radius: .55rem; font-weight: 700; }
@@ -56,7 +72,7 @@
 .doq-nav-link { display: block; padding: .55rem .8rem; color: var(--doq-muted)!important; border-radius: .5rem; transition: background-color .15s ease,color .15s ease; }
 .doq-nav-link:hover,.doq-overview:hover { background: var(--doq-surface); color: var(--doq-foreground)!important; }
 .doq-nav-link.is-active { background: color-mix(in srgb,var(--doq-primary) 11%,transparent); color: var(--doq-primary-text)!important; font-weight: 650; }
-.doq-article { position: relative; min-width: 0; width: min(100%,calc(var(--doq-content-width) + 14rem)); margin: 0 auto; }
+.doq-article { position: relative; min-width: 0; width: 100%; margin: 0; }
 .doq-topbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem 1rem; margin: .5rem 0 2.5rem; }
 .doq-topbar .doq-breadcrumb { margin: 0; }
 .doq-index > .doq-topbar { max-width: 65rem; margin: 0 0 2rem; justify-content: flex-end; }
@@ -108,12 +124,17 @@
 .doq-markdown table:focus-visible { outline: 2px solid var(--doq-focus); outline-offset: 2px; }
 .doq-markdown th,.doq-markdown td { border: 1px solid var(--doq-border); padding: .65rem .8rem; text-align: left; }
 .doq-markdown th { background: var(--doq-surface); }
-.doq-toc { position: absolute; left: calc(var(--doq-content-width) + 2rem); top: 8rem; display: grid; gap: .7rem; width: 11rem; font-size: .78rem; color: var(--doq-muted); }
+/* "On this page". Inline box at medium widths, persistent sticky rail at wide widths. */
+.doq-toc { display: grid; gap: .7rem; align-content: start; min-width: 0; font-size: .78rem; color: var(--doq-muted); }
+.doq-root > .doq-toc { margin: 0 0 1.5rem; padding: .9rem 1rem; border: 1px solid var(--doq-border); border-radius: .7rem; }
 .doq-toc p { margin: 0 0 .2rem; color: var(--doq-foreground); font-weight: 700; }
-.doq-toc a { line-height: 1.35; }
-.doq-toc a.level-three { padding-left: .7rem; }
+.doq-toc a { line-height: 1.35; overflow-wrap: anywhere; }
+/* Logical property, so an RTL rail indents level-3 links on the correct side. */
+.doq-toc a.level-three { padding-inline-start: .7rem; }
 .doq-toc a:hover { color: var(--doq-primary); }
 .doq-toc a.is-active { color: var(--doq-primary-text); font-weight: 700; }
+/* Only focusable when it actually overflows (set in code), so a short TOC adds no pointless tab stop. */
+.doq-toc:focus-visible { outline: 3px solid var(--doq-focus); outline-offset: 2px; border-radius: .4rem; }
 .doq-pagination { display: flex; justify-content: space-between; gap: 1rem; max-width: var(--doq-content-width); margin: 3rem 0 0; padding-top: 1.2rem; border-top: 1px solid var(--doq-border); }
 .doq-pagination a { display: grid; gap: .35rem; color: var(--doq-muted); }
 .doq-pagination a.next { text-align: right; margin-left: auto; }
@@ -189,7 +210,35 @@
 .doq-markdown .doq-steps > ol > li > :first-child { margin-top: 0; font-weight: 650; }
 .doq-markdown .doq-steps > ol > li > pre,.doq-markdown .doq-steps > ol > li > .doq-code { margin: 1rem 0; }
 @media (max-width: 720px) { .doq-markdown .doq-steps { padding-left: .5rem; } .doq-markdown .doq-steps > ol { padding-left: 1.3rem; } .doq-tabpanel { padding-inline: .75rem; } }
-@media (max-width: 1450px) { .doq-root { gap: 2rem; } .doq-toc { position: static; width: auto; margin: 2rem 0; padding: 1rem; border: 1px solid var(--doq-border); border-radius: .7rem; } }
+/* Wide screens: the persistent three-column documentation layout. Both rails stick, the article scrolls. */
+@media (min-width: 1280px) {
+  .doq-root { grid-template-columns: var(--doq-sidebar-width) minmax(0,1fr) var(--doq-toc-width); }
+  .doq-root > .doq-sidebar { grid-column: 1; grid-row: 1; }
+  .doq-root > .doq-article { grid-column: 2; grid-row: 1; }
+  .doq-root > .doq-toc { grid-column: 3; grid-row: 1; }
+  .doq-root[data-toc="none"] { grid-template-columns: var(--doq-sidebar-width) minmax(0,1fr); }
+  .doq-root[data-sidebar="hidden"] { grid-template-columns: minmax(0,1fr) var(--doq-toc-width); }
+  .doq-root[data-sidebar="hidden"] > .doq-article { grid-column: 1; }
+  .doq-root[data-sidebar="hidden"] > .doq-toc { grid-column: 2; }
+  .doq-root[data-sidebar="hidden"][data-toc="none"] { grid-template-columns: minmax(0,1fr); }
+  .doq-root[data-sidebar="right"] { grid-template-columns: var(--doq-toc-width) minmax(0,1fr) var(--doq-sidebar-width); }
+  .doq-root[data-sidebar="right"] > .doq-toc { grid-column: 1; }
+  .doq-root[data-sidebar="right"] > .doq-article { grid-column: 2; }
+  .doq-root[data-sidebar="right"] > .doq-sidebar { grid-column: 3; }
+  .doq-root[data-sidebar="right"][data-toc="none"] { grid-template-columns: minmax(0,1fr) var(--doq-sidebar-width); }
+  .doq-root[data-sidebar="right"][data-toc="none"] > .doq-article { grid-column: 1; }
+  .doq-root[data-sidebar="right"][data-toc="none"] > .doq-sidebar { grid-column: 2; }
+  /* A TOC taller than the viewport scrolls inside its own rail instead of pushing the article or the
+     footer around, and a short one shows no scrollbar because nothing overflows. */
+  .doq-root > .doq-toc {
+    position: sticky; top: var(--doq-sticky-offset); align-self: start;
+    max-height: calc(100vh - (2 * var(--doq-sticky-offset)) - 2rem);
+    overflow: auto; overscroll-behavior: contain;
+    width: var(--doq-toc-width); margin: 0; padding: .5rem .25rem .5rem 0; border: 0; border-radius: 0;
+  }
+  @supports (height: 100dvh) { .doq-root > .doq-toc { max-height: calc(100dvh - (2 * var(--doq-sticky-offset)) - 2rem); } }
+  .doq-root[data-sidebar="right"] > .doq-toc { padding: .5rem 0 .5rem .25rem; }
+}
 @media (max-width: 720px) {
   .doq-root { display: block; padding: 1rem 1rem 3rem; isolation: auto; }
   .doq-mobile-trigger { display: inline-flex; min-height: 2.75rem; align-items: center; margin: 0 0 1rem; padding: .55rem .85rem; border: 1px solid var(--doq-border); border-radius: .55rem; background: var(--doq-surface); color: var(--doq-foreground); font: inherit; font-size: .875rem; font-weight: 650; cursor: pointer; }

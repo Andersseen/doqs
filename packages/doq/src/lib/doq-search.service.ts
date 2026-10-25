@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { DoqSearchResult, mapPagefindFragment, PagefindFragment } from '@doqs/analog/config';
-import { DOQ_VERSION_FILTER } from '@doqs/analog/config';
+import { DOQ_LOCALE_FILTER, DOQ_VERSION_FILTER } from '@doqs/analog/config';
 
 interface PagefindModule {
   search(query: string, options?: { filters?: Record<string, string> }): Promise<{ results: { data(): Promise<PagefindFragment> }[] }>;
@@ -22,16 +22,32 @@ export class DoqSearchService {
   private loading?: { bundlePath: string; module: Promise<PagefindModule> };
 
   /**
-   * Rejects when the index cannot be loaded; a later call retries. With `versionId` the query is filtered by Pagefind itself
-   * (before ranking and truncation); a version that was never indexed rejects with DoqVersionNotIndexedError.
+   * Rejects when the index cannot be loaded; a later call retries. With `versionId` and/or `localeId` the
+   * query is filtered by Pagefind itself, before ranking and truncation, so results never spill across a
+   * version or a language; a version or locale that was never indexed rejects with
+   * DoqVersionNotIndexedError.
    */
-  search(query: string, bundlePath: string, basePath: string, versionId?: string): Promise<DoqSearchResult[]> {
+  search(query: string, bundlePath: string, basePath: string, versionId?: string, localeId?: string): Promise<DoqSearchResult[]> {
     return this.load(bundlePath).then(async pagefind => {
-      if (versionId !== undefined) {
-        const known = (await pagefind.filters?.())?.[DOQ_VERSION_FILTER];
-        if (!known || !(versionId in known)) throw new DoqVersionNotIndexedError(versionId);
+      const filters: Record<string, string> = {};
+      if (versionId !== undefined) filters[DOQ_VERSION_FILTER] = versionId;
+      if (localeId !== undefined) filters[DOQ_LOCALE_FILTER] = localeId;
+      const scoped = Object.keys(filters).length ? filters : undefined;
+      if (scoped) {
+        const known = await pagefind.filters?.();
+        // A locale is only enforced when the index actually carries locale filters; an index built
+        // before localization was enabled still has to answer, just unscoped by locale.
+        if (versionId !== undefined) {
+          const versions = known?.[DOQ_VERSION_FILTER];
+          if (!versions || !(versionId in versions)) throw new DoqVersionNotIndexedError(versionId);
+        }
+        if (localeId !== undefined) {
+          const locales = known?.[DOQ_LOCALE_FILTER];
+          if (locales && !(localeId in locales)) throw new DoqVersionNotIndexedError(localeId);
+          else if (!locales) delete filters[DOQ_LOCALE_FILTER];
+        }
       }
-      const { results } = await pagefind.search(query, versionId === undefined ? undefined : { filters: { [DOQ_VERSION_FILTER]: versionId } });
+      const { results } = await pagefind.search(query, scoped && Object.keys(scoped).length ? { filters: scoped } : undefined);
       const pages = await Promise.all(results.slice(0, MAX_PAGES).map(result => result.data()));
       return pages.flatMap(page => mapPagefindFragment(page, basePath)).slice(0, MAX_ROWS);
     });

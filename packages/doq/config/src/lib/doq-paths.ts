@@ -1,7 +1,8 @@
 import { doqPrerenderRoute } from './doq-document';
-import { DoqResolvedVersioning, DoqVersioning, getDoqVersions, normalizeContentDirectory, normalizeDoqVersioning } from './doq-versions';
+import { DoqResolvedI18n, DoqI18nConfig, getDoqCatalogs, normalizeDoqI18n } from './doq-i18n';
+import { DoqResolvedVersioning, DoqVersioning, normalizeContentDirectory, normalizeDoqVersioning } from './doq-versions';
 
-/** The two values shared by Angular runtime config and Analog's build-time prerender config. */
+/** The values shared by Angular runtime config and Analog's build-time prerender config. */
 export interface DoqPaths {
   /** Analog content subdirectory; docs are read from src/content/<contentDirectory>. */
   readonly contentDirectory: string;
@@ -9,6 +10,12 @@ export interface DoqPaths {
   readonly basePath?: string;
   /** Optional documentation versions: this `contentDirectory` stays the current version; archives are separate snapshots. */
   readonly versioning?: DoqVersioning;
+  /**
+   * Optional localization: independently authored Markdown per locale, served at `/<locale>` prefixed
+   * URLs while the default locale keeps the URLs the site already has. Omit it entirely to keep the
+   * single-locale 0.11 behavior.
+   */
+  readonly i18n?: DoqI18nConfig;
 }
 
 /** Analog `prerender.routes` entry that expands a content directory into routes. */
@@ -18,8 +25,15 @@ export interface DoqPrerenderContentRoute {
   transform: (file: { name: string; relativePath?: string; attributes?: { slug?: unknown } }) => string;
 }
 
+export interface DoqResolvedPaths {
+  contentDirectory: string;
+  basePath: string;
+  versioning?: DoqResolvedVersioning;
+  i18n?: DoqResolvedI18n;
+}
+
 /** Trim and validate path settings; returns slash-free `contentDirectory` and a `/`-prefixed `basePath` ("/" for the root). */
-export function normalizeDoqPaths(paths: DoqPaths): { contentDirectory: string; basePath: string; versioning?: DoqResolvedVersioning } {
+export function normalizeDoqPaths(paths: DoqPaths): DoqResolvedPaths {
   const contentDirectory = normalizeContentDirectory(paths.contentDirectory ?? '');
   if (!contentDirectory) {
     throw new Error(`Doq: invalid contentDirectory "${paths.contentDirectory}"; use a directory below src/content, for example "docs".`);
@@ -31,24 +45,28 @@ export function normalizeDoqPaths(paths: DoqPaths): { contentDirectory: string; 
   if ((!segments.length && !isRoot) || segments.some(part => part === '.' || part === '..')) {
     throw new Error(`Doq: invalid basePath "${paths.basePath}"; use a mount path such as "/docs", or "/" for the application root.`);
   }
-  const result = { contentDirectory, basePath: `/${segments.join('/')}` };
-  return paths.versioning === undefined ? result : { ...result, versioning: normalizeDoqVersioning(paths.versioning, contentDirectory) };
+  const result: DoqResolvedPaths = { contentDirectory, basePath: `/${segments.join('/')}` };
+  // Versioning resolves first: locale archive directories are validated against the archive ids it declares.
+  const withVersions = paths.versioning === undefined ? result : { ...result, versioning: normalizeDoqVersioning(paths.versioning, contentDirectory) };
+  return paths.i18n === undefined ? withVersions : { ...withVersions, i18n: normalizeDoqI18n(paths.i18n, contentDirectory, withVersions.versioning) };
 }
 
 /**
  * Analog prerender routes for a Doq documentation tree: the index plus every Markdown file below
  * `src/content/<contentDirectory>`, mapped to its canonical (or custom-slug) public URL.
+ * With `i18n`, every published (locale, version) tree contributes its own index and content routes, so
+ * a localized page is prerendered only where its Markdown actually exists.
  * Spread the result into `analog({ prerender: { routes: async () => ['/', ...doqPrerenderRoutes(doqPaths)] } })`.
  */
 export function doqPrerenderRoutes(paths: DoqPaths): readonly (string | DoqPrerenderContentRoute)[] {
   const normalized = normalizeDoqPaths(paths);
   const reserved = normalized.versioning?.pathSegment;
-  return getDoqVersions(normalized).flatMap((version): (string | DoqPrerenderContentRoute)[] => [
-    version.basePath,
+  return getDoqCatalogs(normalized).flatMap((catalog): (string | DoqPrerenderContentRoute)[] => [
+    catalog.basePath,
     {
-      contentDir: `src/content/${version.contentDirectory}`,
+      contentDir: `src/content/${catalog.contentDirectory}`,
       recursive: true,
-      transform: file => doqPrerenderRoute(file, version.basePath, version.current ? reserved : undefined),
+      transform: file => doqPrerenderRoute(file, catalog.basePath, catalog.current ? reserved : undefined),
     },
   ]);
 }

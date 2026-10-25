@@ -160,12 +160,19 @@ const htmlEscape = (text: string): string => text.replace(/&/g, '&amp;').replace
  *
  * `selector` is the element name (`app-button`, or `button` for an attribute directive). `attributes` are static,
  * trusted attributes written first (`voltButton`, `type="button"`). `text` becomes the element body, escaped.
+ *
+ * `defaults` is optional and purely subtractive: an input whose current value is identical (`Object.is`) to the
+ * default declared for that exact name is left out, so a snippet shows only what the reader actually changed.
+ * Only names present in `defaults` are ever candidates, which is why `0` and `false` survive everywhere else —
+ * nothing is suppressed by type. Omitting `defaults` reproduces the 0.11 output byte for byte.
  */
-export function formatDoqUsage(selector: string, values: DoqPlaygroundValues, options: { readonly attributes?: readonly string[]; readonly text?: string } = {}): string {
+export function formatDoqUsage(selector: string, values: DoqPlaygroundValues, options: { readonly attributes?: readonly string[]; readonly text?: string; readonly defaults?: Readonly<Record<string, unknown>> } = {}): string {
   if (!SELECTOR.test(selector)) throw new Error(`formatDoqUsage: "${selector}" is not an element name`);
   const attributes: string[] = [...(options.attributes ?? [])];
+  const defaults = options.defaults;
   for (const [name, value] of Object.entries(values)) {
     if (value === undefined || !ATTRIBUTE_NAME.test(name)) continue;
+    if (defaults && name in defaults && Object.is(value, defaults[name])) continue;
     if (typeof value === 'number') { if (Number.isFinite(value)) attributes.push(`[${name}]="${value}"`); }
     else if (typeof value === 'boolean') attributes.push(`[${name}]="${value}"`);
     else if (/\{\{|\}\}|[\n\r\t\\]/.test(value)) {

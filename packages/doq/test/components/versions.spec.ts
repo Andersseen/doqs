@@ -97,7 +97,7 @@ describe('COMP-091 missing pages and unknown versions (VER-10, NAV-05)', () => {
 
   it('rejects a current document that would use the reserved archive prefix', async () => {
     const colliding = [...docs, { source: 'v/1/fake', body: 'Collider', attributes: { title: 'Collider', slug: 'v/1/fake' } }];
-    await expect(renderDocs({ docs: colliding, config: config(), url: '/docs' })).rejects.toThrow(/reserved archive prefix/);
+    await expect(renderDocs({ docs: colliding, config: config(), url: '/docs' })).rejects.toThrow(/reserved URL prefix/);
   });
 
   it('fails loudly for an archive without Markdown documents', async () => {
@@ -242,9 +242,9 @@ describe('COMP-094 version-filtered search (SEARCH-01, SEARCH-02, SEARCH-04)', (
   }
 
   it.each([
-    ['/docs/install', ['install', '/pagefind/', '/docs', 'latest']],
-    ['/docs/v/1/install', ['install', '/pagefind/', '/docs/v/1', '1']],
-    ['/docs/v/0.9', ['install', '/pagefind/', '/docs/v/0.9', '0.9']],
+    ['/docs/install', ['install', '/pagefind/', '/docs', 'latest', undefined]],
+    ['/docs/v/1/install', ['install', '/pagefind/', '/docs/v/1', '1', undefined]],
+    ['/docs/v/0.9', ['install', '/pagefind/', '/docs/v/0.9', '0.9', undefined]],
   ])('searches the version being read from %s', async (url, expected) => {
     const search = await searchFrom(url);
     expect(search.calls).toEqual([expected]);
@@ -270,7 +270,7 @@ describe('COMP-094 version-filtered search (SEARCH-01, SEARCH-02, SEARCH-04)', (
     await user.click(screen.getAllByRole('button', { name: /Search/ })[0]!);
     await user.type(screen.getByLabelText('Search the documentation'), 'doq');
     await new Promise(resolve => setTimeout(resolve, 250));
-    expect(search.calls).toEqual([['doq', '/pagefind/', '/docs', undefined]]);
+    expect(search.calls).toEqual([['doq', '/pagefind/', '/docs', undefined, undefined]]);
   });
 
   it('reports a version that was never indexed instead of searching another one', async () => {

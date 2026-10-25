@@ -9,5 +9,7 @@ export * from './lib/doq-config';
 export * from './lib/doq-paths';
 export * from './lib/doq-document';
 export * from './lib/doq-versions';
+export * from './lib/doq-i18n';
+export * from './lib/doq-i18n-adapter';
 export * from './lib/doq-search';
 export * from './lib/doq-playground-model';
