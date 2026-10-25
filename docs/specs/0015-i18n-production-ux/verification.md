@@ -19,6 +19,8 @@
 | MANUAL-005 | AC-008     | `<html lang>`, `dir`, canonical and `hreflang` in real server-rendered and prerendered output, and head ownership                                                                     | NOT RUN |
 | MANUAL-006 | AC-009     | Sticky TOC geometry in a real browser: rail position as `scrollY` grows, internal scroll, no horizontal overflow                                                                      | NOT RUN |
 | MANUAL-007 | AC-010     | HTTP 404 from a running SSR server for an unknown documentation URL, 200 for a known one, host routes unaffected                                                                      | NOT RUN |
+| COMP-143   | AC-011     | A host that provides `DOQ_CONFIG` in a lazy route injector renders a document and the index; without the view-level `DoqI18n` provider this throws NG0201                             | PASS    |
+| MANUAL-008 | AC-011     | `pnpm --filter site build` — the exact CI step ("Production builds and package") that failed on main with NG0201 during prerendering                                                  | PASS    |
 
 MANUAL-003 note: the two timeouts are `UNIT-096` and `UNIT-170` in `api-reference.spec.ts`, a file this
 branch does not touch. Re-run in isolation the same file reports **41 passed, 0 failed**, so they are
@@ -37,7 +39,19 @@ npx vitest run -c vitest.unit.config.ts \
 npx vitest run -c vitest.unit.config.ts \
   packages/doq/test/unit/i18n.spec.ts                           # 40 passed, 0 failed
 pnpm --filter @doqs/analog test:components                      # 17 files, 185 passed, 0 failed
+npx vitest run -c vitest.components.config.ts \
+  test/components/lazy-provided-config.spec.ts                  # 2 passed, 0 failed (COMP-143 regression)
+pnpm --filter @doqs/analog test:components                      # 18 files, 187 passed, 0 failed (after the fix)
+pnpm --filter site build                                        # exit 0; site prerenders and indexes 42 pages
 ```
+
+The CI run for the milestone commit on `main` (run 40224097968) failed in "Production builds and package"
+with `RuntimeError: NG0201` thrown from `new DoqI18n` during site prerendering: `DoqI18n` was
+`providedIn: 'root'` while `apps/site` provides `DOQ_CONFIG` inside its lazy `/docs` route
+(`apps/site/src/app/docs.routes.ts:12`), a pattern the project's own documentation recommends. The fix
+provides `DoqI18n` from `DoqDocsComponent` and `DoqIndexComponent` instead, and COMP-143 reproduces the
+failure shape at the component level. `pnpm --filter site build` is the exact step that failed and now
+exits 0.
 
 Evidence for the external findings was read from installed and downloaded artifacts, not from
 documentation alone: `@analogjs/content@2.9.0`'s `package.json` peer list and

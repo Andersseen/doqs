@@ -14,6 +14,7 @@ import { normalizeDoqPaths } from '@doqs/analog/config';
 @Component({
   selector: 'doq-index',
   standalone: true,
+  providers: [DoqI18n],
   imports: [RouterLink, NgComponentOutlet, NgTemplateOutlet, DoqSearchComponent, DoqVersionSwitcherComponent, DoqLocaleSwitcherComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `

@@ -25,6 +25,7 @@ interface DocAttributes { title?: string; description?: string; order?: number; 
 @Component({
   selector: 'doq-docs',
   standalone: true,
+  providers: [DoqI18n],
   imports: [RouterLink, MarkdownComponent, DoqButtonDemoComponent, DoqPlaygroundComponent, DoqNavigationTreeComponent, DoqSearchComponent, DoqTabsComponent, DoqVersionSwitcherComponent, DoqLocaleSwitcherComponent, NgComponentOutlet, NgTemplateOutlet],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
