@@ -92,6 +92,7 @@ component library, any change to the default non-localized route model, and publ
 - **REQ-008** An unknown documentation URL answers HTTP 404 when a server response exists, and behaves safely when it does not.
 - **REQ-009** A usage snippet can omit values identical to a default the caller declared, without changing output for any caller that declares none.
 - **REQ-010** Every 0.11 configuration that sets no `i18n` keeps its URLs, its rendered strings, the meaning of its search arguments and its error semantics.
+- **REQ-011** Doqs views resolve their locale and chrome state from the injector that provides `DOQ_CONFIG`, so a host that scopes `provideDoq()` to a lazy route — the documented pattern the official site uses — renders without a null-injector error.
 
 ## Acceptance cases
 
@@ -105,6 +106,7 @@ component library, any change to the default non-localized route model, and publ
 - **AC-008** [REQ-006] Given a localized page rendered by a real server, then the HTML carries the right `lang`, `dir` for an RTL locale, one canonical and an `hreflang` set including `x-default` with no duplicate elements; and given a host that owns the head, Doqs writes none of them.
 - **AC-009** [REQ-007] Given a long article at 1440px, then after `window.scrollY` increases past the first screen the TOC's bounding box still starts at its sticky offset, the left sidebar does too, the article has scrolled, and nothing overflows the viewport horizontally; and given a TOC taller than the viewport, it scrolls inside its own rail.
 - **AC-010** [REQ-008] Given a running SSR server, then an unknown documentation URL answers 404, a known one answers 200, and a host route below the same prefix with `unmatched: 'continue'` is unaffected.
+- **AC-011** [REQ-011] Given a host that provides `provideDoq()` in a lazy route's `providers` rather than at the application root, then a document and the index render normally, and the official site's production build — the step that failed CI with NG0201 — succeeds.
 
 ## Public API impact
 

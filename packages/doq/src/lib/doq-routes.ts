@@ -4,7 +4,7 @@ import { DOQ_CONFIG, DoqConfig } from '@doqs/analog/config';
 import { injectDoqDocuments } from './doq-catalog';
 import { DoqDocsComponent } from './doq-docs.component';
 import { DoqIndexComponent } from './doq-index.component';
-import { doqReservedSegments, getDoqCatalogs, normalizeDoqPaths } from '@doqs/analog/config';
+import { doqReservedSegments, getDoqCatalogs, normalizeDoqPathsFull } from '@doqs/analog/config';
 
 /**
  * Public Angular Router bridge. It captures the nested path as one Analog content slug.
@@ -16,11 +16,14 @@ import { doqReservedSegments, getDoqCatalogs, normalizeDoqPaths } from '@doqs/an
  * Locale-prefixed routes are listed first: on a root-mounted tree `/es/getting-started` must never be
  * readable as the slug `es/getting-started`.
  */
-export function doqRoutes(config: Pick<DoqConfig, 'basePath' | 'routeParam' | 'versioning' | 'i18n' | 'unmatched'> = {}): Routes {
+export function doqRoutes(config: Pick<DoqConfig, 'basePath' | 'routeParam' | 'versioning'> = {}): Routes {
   const routeParam = config.routeParam ?? 'slug';
-  const paths = normalizeDoqPaths({ contentDirectory: 'docs', ...config });
+  // `unmatched` and `i18n` are read from the same configuration object (`doqRoutes(doqConfig)`); the
+  // parameter type stays as in 0.7 so the public signature is unchanged.
+  const extended = config as Pick<DoqConfig, 'basePath' | 'routeParam' | 'versioning' | 'i18n' | 'unmatched'>;
+  const paths = normalizeDoqPathsFull({ contentDirectory: 'docs', ...extended });
   const matchesPrefix = (segments: UrlSegment[], prefix: readonly string[]) => prefix.every((part, index) => segments[index]?.path === part);
-  const continues = config.unmatched === 'continue';
+  const continues = extended.unmatched === 'continue';
   const reserved = doqReservedSegments(paths.i18n, paths.versioning);
   /**
    * `unmatched: 'continue'`: claim a URL only when this exact catalog has a document for its slug, read

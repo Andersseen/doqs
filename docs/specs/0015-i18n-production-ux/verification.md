@@ -19,6 +19,8 @@
 | MANUAL-005 | AC-008     | `<html lang>`, `dir`, canonical and `hreflang` in real server-rendered and prerendered output, and head ownership                                                                     | NOT RUN |
 | MANUAL-006 | AC-009     | Sticky TOC geometry in a real browser: rail position as `scrollY` grows, internal scroll, no horizontal overflow                                                                      | NOT RUN |
 | MANUAL-007 | AC-010     | HTTP 404 from a running SSR server for an unknown documentation URL, 200 for a known one, host routes unaffected                                                                      | NOT RUN |
+| COMP-143   | AC-011     | A host that provides `DOQ_CONFIG` in a lazy route injector renders a document and the index; without the view-level `DoqI18n` provider this throws NG0201                             | PASS    |
+| MANUAL-008 | AC-011     | `pnpm --filter site build` — the exact CI step ("Production builds and package") that failed on main with NG0201 during prerendering                                                  | PASS    |
 
 MANUAL-003 note: the two timeouts are `UNIT-096` and `UNIT-170` in `api-reference.spec.ts`, a file this
 branch does not touch. Re-run in isolation the same file reports **41 passed, 0 failed**, so they are
@@ -37,7 +39,19 @@ npx vitest run -c vitest.unit.config.ts \
 npx vitest run -c vitest.unit.config.ts \
   packages/doq/test/unit/i18n.spec.ts                           # 40 passed, 0 failed
 pnpm --filter @doqs/analog test:components                      # 17 files, 185 passed, 0 failed
+npx vitest run -c vitest.components.config.ts \
+  test/components/lazy-provided-config.spec.ts                  # 2 passed, 0 failed (COMP-143 regression)
+pnpm --filter @doqs/analog test:components                      # 18 files, 187 passed, 0 failed (after the fix)
+pnpm --filter site build                                        # exit 0; site prerenders and indexes 42 pages
 ```
+
+The CI run for the milestone commit on `main` (run 40224097968) failed in "Production builds and package"
+with `RuntimeError: NG0201` thrown from `new DoqI18n` during site prerendering: `DoqI18n` was
+`providedIn: 'root'` while `apps/site` provides `DOQ_CONFIG` inside its lazy `/docs` route
+(`apps/site/src/app/docs.routes.ts:12`), a pattern the project's own documentation recommends. The fix
+provides `DoqI18n` from `DoqDocsComponent` and `DoqIndexComponent` instead, and COMP-143 reproduces the
+failure shape at the component level. `pnpm --filter site build` is the exact step that failed and now
+exits 0.
 
 Evidence for the external findings was read from installed and downloaded artifacts, not from
 documentation alone: `@analogjs/content@2.9.0`'s `package.json` peer list and
@@ -46,21 +60,58 @@ documentation alone: `@analogjs/content@2.9.0`'s `package.json` peer list and
 `pagefind@1.5.2`'s `types/index.d.ts`. Paths and quotations are in
 [research/external-findings.md](research/external-findings.md).
 
+## Performance budgets raised, with measured evidence
+
+`pnpm perf:check` failed on CI (run 40228539113) for eight budgets because this branch ships real new
+code and CSS: the three-column sticky documentation layout and its `--host-docs-sticky-offset` /
+`--host-docs-toc-width` tokens grow `packages/doq/styles.css`, and the docs chunk gains the `DoqI18n`
+service, the locale switcher and the (locale, version) catalog resolution. No documentation content was
+added, so `staticPages` and `searchIndexBytes` are untouched.
+
+Measured on CI (ubuntu, node 22), old max → new measured value:
+
+| Target / metric           | old max | measured | new baseline / max |
+| ------------------------- | ------- | -------- | ------------------ |
+| doq-core stylesGzip       | 6300    | 6944     | 6944 / 7291        |
+| doq-core stylesBytes      | 32800   | 35452    | 35452 / 37225      |
+| showcase-a initialJsGzip  | 212400  | 216845   | 216845 / 227687    |
+| showcase-a allJsGzip      | 234200  | 235977   | 235977 / 247776    |
+| showcase-a initialCssGzip | 15400   | 15463    | 15463 / 16236      |
+| showcase-b initialJsGzip  | 195200  | 200586   | 200586 / 210615    |
+| showcase-b allJsGzip      | 214900  | 217187   | 217187 / 228046    |
+| site allJsGzip            | 332900  | 336123   | 336123 / 352929    |
+
+The same justification is recorded in each entry's `reason` in `perf-budgets.json`, per that file's own
+rule that a budget may only be raised in a pull request whose verification report explains why. Local
+`pnpm perf:check` after the raise reports every metric `ok` (exit 0); note the local macOS gzip figures
+run a few percent under the CI ones (for example showcase-b initialJsGzip 194,978 locally against 200,586
+on CI), which is why the new maxima carry 5% headroom above the CI-measured baseline.
+
 ## Remaining limitations
 
-**Not verified by any test on this branch.** AC-007 through AC-010 are implemented but unproven. No
-Playwright, pytest, contract, determinism, compatibility, performance, packed-tarball or consumer check
-was run, and no showcase, official-site page or localized Markdown fixture was added. In particular:
+**Verified by CI on the pull request, not just locally.** Run
+[40290479686](https://github.com/Andersseen/doqs/actions/runs/40290479686) at commit `7a0e101` reports
+**12/12 jobs `success`**: Playwright E2E, Playwright cross-browser (Firefox, WebKit), Python contract
+tests, MVP and 0.1 acceptance harness, Angular 21 and 22 compatibility, deterministic builds, content
+scaling budget, production builds and package (pack, `verify:package`, `verify:public-api`, `perf:check`),
+unit and component tests, Node tooling on Windows, and static checks. An earlier statement in this file
+that no Playwright, pytest, contract, determinism, compatibility or performance check had been run is
+superseded by that run.
 
-- The sticky TOC has **no geometry test**. Per the brief, a `position: sticky` declaration is not evidence;
-  AC-009 needs a real browser asserting the rail's bounding box as `scrollY` grows. `e2e/toc.spec.ts` still
-  carries its 0.11 comment that the TOC is not sticky and still uses DOM clicks in the history tests, so
-  that suite is now **stale and expected to fail** against the new layout. It was not updated.
+**Still not verified by any test.** In particular:
+
+- AC-009 (sticky TOC geometry) is proven only indirectly. `e2e/toc.spec.ts` passes unchanged against the
+  new layout — the earlier claim here that it was stale and expected to fail was wrong — and MVP M16
+  exercises TOC clicking and the scroll-spy in a real browser, but no test yet asserts the rail's bounding
+  box as `scrollY` grows, which is what the brief asks for. I measured that by hand instead: headerBottom
+  67, tocTop/sidebarTop 99 at rest and 67 while scrolled at 1440x900.
 - The SSR 404 sets `RESPONSE_INIT.status` but **whether Analog propagates that status** in its dev server
   and production SSR server was not measured. If Analog drops it, this is an upstream limitation to report,
   not a Doqs fix.
-- Locale-scoped search is wired end to end but **no index was built or queried**, and Pagefind support for
-  `es`, `uk` and `ar` was read from typings rather than confirmed against generated indexes.
+- Locale-scoped search is wired end to end but **no localized index was built or queried**, and Pagefind
+  support for `es`, `uk` and `ar` was read from typings rather than confirmed against generated indexes.
+- No showcase, official-site page or localized Markdown fixture was added, so no localized page has ever
+  been rendered end to end: the i18n spine is covered by unit tests and by unlocalized integration only.
 
 **Deliberately not implemented** (see Non-goals in `spec.md`): the `@doqs/analog/etyma` secondary entry
 point and its optional peer, an alternative-provider adapter fixture, RTL and localized content fixtures,
@@ -70,14 +121,36 @@ doctor check for AM-01, the pre-hydration event-replay investigation (AM-02), th
 write-up (AM-07), the version bump to 0.12.0, changelog and README updates, and all four external
 consumer regressions (Volt UI, Angular Movement, Quartz, packed matrix).
 
-**Known consequences to resolve before this is mergeable:**
+**Known consequences still open:**
 
-1. `pnpm verify:public-api` will report the new exports and the changed `doqRoutes`,
-   `DoqSearchService.search` and error-wording declarations. The report and baseline need
-   `pnpm public-api:update` plus a stability-tier entry for each new name; neither was run.
-2. The playground component still renders English literals. It reads chrome from its own template rather
+1. The playground component still renders English literals. It reads chrome from its own template rather
    than from `DoqI18n`, so playground strings are **not** localized despite being inventoried in
-   `DOQ_DEFAULT_MESSAGES`.
-3. `perf-budgets.json` was not re-measured against the new grid layout.
-4. `sdd:check`, `format:check`, `docs:check`, `api:check` and `content:check` were not run after the final
-   edit, so the branch is not yet gate-clean.
+   `DOQ_DEFAULT_MESSAGES`. This is the largest remaining gap between what the message catalog implies and
+   what a localized site actually shows.
+2. The version is still `0.11.0`; `packages/doq/CHANGELOG.md` and `README.md` have no 0.12 entry, and the
+   official site has no page documenting `i18n`, the adapter contract or `--host-docs-sticky-offset`.
+3. `docs:check`, `api:check` and `content:check` were not run separately in this session; `format:check`,
+   `typecheck:scripts` and `sdd:check` are confirmed green by the CI static-checks job.
+
+**Resolved while fixing CI** (each was a real defect, recorded here so the causes are not lost):
+
+- `verify:public-api` failed because the 0.12 work had changed the _text_ of existing declarations, which
+  the 0.7 baseline comparison treats as a break even when additive. `normalizeDoqPaths` and `doqRoutes`
+  keep their 0.7 signatures (the locale-aware resolver is the new `normalizeDoqPathsFull`),
+  `DoqDocsComponent` regained `copy`/`version`/`versions`/`versionFilter` and `document` its exact 0.11
+  shape, `DoqIndexComponent` regained `copy`, and the new surface was recorded with `public-api:update`
+  plus a stability tier per name: PASS, 228 exports, compatible with 0.7.0.
+- `perf:check` failed on eight budgets; raised with the measured evidence in the table above.
+- The official site's production build failed with NG0201 because `DoqI18n` was `providedIn: 'root'` while
+  the site provides `DOQ_CONFIG` in its lazy `/docs` route — a documented consumer pattern. `DoqI18n` is
+  now provided by the two documentation views; COMP-143 is the regression test.
+- CONTRACT-080's 60-word floor counted the TOC's own link text while the rail lived inside the indexed
+  article; recalibrated to 40 words of body text, with the reason at the assertion.
+- M16 and one E2E case failed on the new layout: the rails stuck 1rem from the viewport top and slid under
+  the hosts' sticky headers, so the first TOC link was covered and the harness click hit the header
+  instead (fixed with `--host-docs-sticky-offset`, site 5rem and Showcase A 4.2rem); the scroll-spy
+  overrode a fragment the reader had just followed whenever the last section was too short to reach the
+  top of the viewport (fixed by pinning the followed heading while it is on screen); and the harness
+  fixture needed tail height below its headings, which the old static TOC used to supply.
+- `revealActiveTocLink` threw `ReferenceError: CSS is not defined` under jsdom once the pin made it run
+  outside the observer; it now matches by decoded hash instead of a `CSS.escape`d selector.

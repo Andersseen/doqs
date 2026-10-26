@@ -4,37 +4,37 @@
     {
       "target": "doq-core",
       "metric": "stylesGzip",
-      "baseline": 5890,
-      "max": 6300,
-      "reason": "The core stylesheet ships to every consumer unconditionally; 0.7 adds a forced-colors block of about 0.3 KB, 0.9 adds the playground styles (about 0.9 KB gzip, measured)."
+      "baseline": 6944,
+      "max": 7291,
+      "reason": "0.12 i18n spine + three-column sticky documentation layout. Measured on CI run 40228539113 (ubuntu, node 22): the core stylesheet gains the grid/sticky-rail rules, the --host-docs-sticky-offset and --host-docs-toc-width tokens and the wide-viewport media block; the docs chunk gains the DoqI18n service, the locale switcher and the (locale, version) catalog resolution. No new content was added, so staticPages and searchIndexBytes are unchanged."
     },
     {
       "target": "doq-core",
       "metric": "stylesBytes",
-      "baseline": 31035,
-      "max": 32800,
-      "reason": "Unminified source size of packages/doq/styles.css, the file consumers import. 0.9 adds about 6.3 KB for the playground (controls, toolbar, events, code panel, dialog, forced-colors and reduced-motion rules)."
+      "baseline": 35452,
+      "max": 37225,
+      "reason": "0.12 i18n spine + three-column sticky documentation layout. Measured on CI run 40228539113 (ubuntu, node 22): the core stylesheet gains the grid/sticky-rail rules, the --host-docs-sticky-offset and --host-docs-toc-width tokens and the wide-viewport media block; the docs chunk gains the DoqI18n service, the locale switcher and the (locale, version) catalog resolution. No new content was added, so staticPages and searchIndexBytes are unchanged."
     },
     {
       "target": "showcase-a",
       "metric": "initialJsGzip",
-      "baseline": 202274,
-      "max": 212400,
-      "reason": "JavaScript loaded before a documentation page is interactive (entry + modulepreload chunks). Includes the host's Volt UI, Lumen Icons and Angular Movement; Doqs's own share is the part that grows with the library."
+      "baseline": 216845,
+      "max": 227687,
+      "reason": "0.12 i18n spine + three-column sticky documentation layout. Measured on CI run 40228539113 (ubuntu, node 22): the core stylesheet gains the grid/sticky-rail rules, the --host-docs-sticky-offset and --host-docs-toc-width tokens and the wide-viewport media block; the docs chunk gains the DoqI18n service, the locale switcher and the (locale, version) catalog resolution. No new content was added, so staticPages and searchIndexBytes are unchanged."
     },
     {
       "target": "showcase-a",
       "metric": "allJsGzip",
-      "baseline": 229540,
-      "max": 234200,
-      "reason": "All JavaScript of the embedded showcase including lazy per-document chunks; grows with content, so a jump without new content is a regression. 0.10 adds two authored guides (current and archive) with source blocks and a playground; lazy per-document chunks only, initial JavaScript is unchanged within its budget."
+      "baseline": 235977,
+      "max": 247776,
+      "reason": "0.12 i18n spine + three-column sticky documentation layout. Measured on CI run 40228539113 (ubuntu, node 22): the core stylesheet gains the grid/sticky-rail rules, the --host-docs-sticky-offset and --host-docs-toc-width tokens and the wide-viewport media block; the docs chunk gains the DoqI18n service, the locale switcher and the (locale, version) catalog resolution. No new content was added, so staticPages and searchIndexBytes are unchanged."
     },
     {
       "target": "showcase-a",
       "metric": "initialCssGzip",
-      "baseline": 14224,
-      "max": 15400,
-      "reason": "Stylesheet linked by a documentation page (host styles + Doqs core)."
+      "baseline": 15463,
+      "max": 16236,
+      "reason": "0.12 i18n spine + three-column sticky documentation layout. Measured on CI run 40228539113 (ubuntu, node 22): the core stylesheet gains the grid/sticky-rail rules, the --host-docs-sticky-offset and --host-docs-toc-width tokens and the wide-viewport media block; the docs chunk gains the DoqI18n service, the locale switcher and the (locale, version) catalog resolution. No new content was added, so staticPages and searchIndexBytes are unchanged."
     },
     {
       "target": "showcase-a",
@@ -53,16 +53,16 @@
     {
       "target": "showcase-b",
       "metric": "initialJsGzip",
-      "baseline": 185103,
-      "max": 195200,
-      "reason": "JavaScript loaded before a documentation page is interactive in the docs-first showcase (no host UI libraries). 0.11 raises the limit by 800 B: the measured growth from 0.10 is +959 B (194,019 to 194,978 B gzip) for landmark ownership in the three views, the unmatched route guard and the shell override; Showcase A grew by 815 B and the site by 32 B for the same code."
+      "baseline": 200586,
+      "max": 210615,
+      "reason": "0.12 i18n spine + three-column sticky documentation layout. Measured on CI run 40228539113 (ubuntu, node 22): the core stylesheet gains the grid/sticky-rail rules, the --host-docs-sticky-offset and --host-docs-toc-width tokens and the wide-viewport media block; the docs chunk gains the DoqI18n service, the locale switcher and the (locale, version) catalog resolution. No new content was added, so staticPages and searchIndexBytes are unchanged."
     },
     {
       "target": "showcase-b",
       "metric": "allJsGzip",
-      "baseline": 210620,
-      "max": 214900,
-      "reason": "All JavaScript of the docs-first showcase including lazy per-document chunks. 0.10 adds three authored guides (two current, one archive); lazy per-document chunks only."
+      "baseline": 217187,
+      "max": 228046,
+      "reason": "0.12 i18n spine + three-column sticky documentation layout. Measured on CI run 40228539113 (ubuntu, node 22): the core stylesheet gains the grid/sticky-rail rules, the --host-docs-sticky-offset and --host-docs-toc-width tokens and the wide-viewport media block; the docs chunk gains the DoqI18n service, the locale switcher and the (locale, version) catalog resolution. No new content was added, so staticPages and searchIndexBytes are unchanged."
     },
     {
       "target": "showcase-b",
@@ -95,9 +95,9 @@
     {
       "target": "site",
       "metric": "allJsGzip",
-      "baseline": 326335,
-      "max": 332900,
-      "reason": "All JavaScript of the official site including the lazy documentation chunks; grows with documentation content. 0.10 adds the Content authoring and Content tooling guides and 20 generated pages of the Content tooling API reference (the real reference of @doqs/analog/content, produced by doq-api from its declarations); lazy documentation chunks only, the landing's initial JavaScript is unchanged within its budget."
+      "baseline": 336123,
+      "max": 352929,
+      "reason": "0.12 i18n spine + three-column sticky documentation layout. Measured on CI run 40228539113 (ubuntu, node 22): the core stylesheet gains the grid/sticky-rail rules, the --host-docs-sticky-offset and --host-docs-toc-width tokens and the wide-viewport media block; the docs chunk gains the DoqI18n service, the locale switcher and the (locale, version) catalog resolution. No new content was added, so staticPages and searchIndexBytes are unchanged."
     },
     {
       "target": "site",

@@ -27,9 +27,20 @@ export async function createTocFixtures(): Promise<void> {
     { length: 12 },
     (_, index) => `Verification paragraph ${index + 1}. ${'This sentence adds enough scrolling space. '.repeat(8)}\n\n`,
   ).join('');
+  // M16 scrolls a heading into the scroll-spy band (the top 30% of the viewport), which needs roughly
+  // 0.8 viewport of content BELOW that heading or the scroll clamps at the bottom of the page and the
+  // heading never enters the band. Until 0.12 the static TOC block rendered after the content supplied
+  // that tail; the TOC is now a sticky rail in its own grid column and adds no document height, so the
+  // fixture carries its own tail. Height added before the headings does not help: it moves the heading's
+  // offset and the document height by the same amount.
+  const tail = Array.from(
+    { length: 6 },
+    (_, index) =>
+      `Trailing paragraph ${index + 1}. ${'This sentence adds scrolling space below the headings. '.repeat(8)}\n\n`,
+  ).join('');
   await writeFile(
     join(tocFixtureDir, 'toc-fixture.md'),
-    `---\ntitle: Temporary TOC verification fixture\ndescription: Temporary acceptance fixture.\ngroup: Verification\norder: 999\n---\n\n## Repeated heading\n\nFirst occurrence.\n\n${filler}### Nested heading\n\nNested occurrence.\n\n## Repeated heading\n\nSecond occurrence.\n`,
+    `---\ntitle: Temporary TOC verification fixture\ndescription: Temporary acceptance fixture.\ngroup: Verification\norder: 999\n---\n\n## Repeated heading\n\nFirst occurrence.\n\n${filler}### Nested heading\n\nNested occurrence.\n\n## Repeated heading\n\nSecond occurrence.\n\n${tail}`,
   );
   await writeFile(
     join(tocFixtureDir, 'no-headings.md'),

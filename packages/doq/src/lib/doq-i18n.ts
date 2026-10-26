@@ -14,7 +14,7 @@ import {
   formatDoqMessage,
 } from '@doqs/analog/config';
 import { DOQ_CONFIG } from '@doqs/analog/config';
-import { normalizeDoqPaths } from '@doqs/analog/config';
+import { normalizeDoqPathsFull } from '@doqs/analog/config';
 import { resolveDoqCopy } from './doq-catalog';
 
 /**
@@ -26,14 +26,18 @@ import { resolveDoqCopy } from './doq-catalog';
  * no mutable global to fall out of sync during SSR. *What the chrome says* belongs to Doqs: the English
  * defaults live in `DOQ_DEFAULT_MESSAGES` and an adapter may override any of them.
  *
+ * Provided by the documentation views rather than at root, because `DOQ_CONFIG` is routinely provided in
+ * a lazy route's injector (the official site does exactly that) and a root-provided service could not
+ * see it. Child controls resolve this instance from the view's injector.
+ *
  * With no adapter and no `i18n` configuration this resolves to fixed English and identity links, which
  * is exactly the 0.11 behavior.
  */
-@Injectable({ providedIn: 'root' })
+@Injectable()
 export class DoqI18n {
   private readonly config = inject(DOQ_CONFIG);
   private readonly adapter: DoqI18nAdapter | null = inject(DOQ_I18N_ADAPTER, { optional: true });
-  private readonly paths = normalizeDoqPaths(this.config);
+  private readonly paths = normalizeDoqPathsFull(this.config);
   readonly i18n: DoqResolvedI18n | undefined = this.paths.i18n;
   /** True when the configuration publishes more than one locale. */
   readonly localized = !!this.i18n && this.i18n.locales.length > 1;

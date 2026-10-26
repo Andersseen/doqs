@@ -25,6 +25,7 @@ interface DocAttributes { title?: string; description?: string; order?: number; 
 @Component({
   selector: 'doq-docs',
   standalone: true,
+  providers: [DoqI18n],
   imports: [RouterLink, MarkdownComponent, DoqButtonDemoComponent, DoqPlaygroundComponent, DoqNavigationTreeComponent, DoqSearchComponent, DoqTabsComponent, DoqVersionSwitcherComponent, DoqLocaleSwitcherComponent, NgComponentOutlet, NgTemplateOutlet],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -105,6 +106,8 @@ export class DoqDocsComponent {
   readonly catalog = injectDoqCatalog(this.config);
   readonly versioned = !!normalizeDoqPaths(this.config).versioning;
   readonly activeHeading = signal('');
+  /** The heading the reader explicitly followed by fragment; stays lit while it is still on screen. */
+  private pinnedHeading?: string;
   readonly mobileNavigationOpen = signal(false);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -144,10 +147,12 @@ export class DoqDocsComponent {
       else if (focusWasInNavigation && !documentChanged) this.hostElement.querySelector<HTMLElement>('.doq-mobile-trigger')?.focus();
     }
   });
-  private readonly copy = resolveDoqCopy(this.config);
+  readonly copy = resolveDoqCopy(this.config);
   private readonly canonicalVersioning = normalizeDoqPaths(this.config).versioning;
   /** Every configured version, current first; the locale never changes this list. */
-  private readonly versions = getDoqVersions(normalizeDoqPaths(this.config));
+  readonly versions = getDoqVersions(normalizeDoqPaths(this.config));
+  readonly version = this.catalog.version;
+  readonly versionFilter = `doqsVersion:${this.version.id}`;
   readonly documents = this.unknownVersion() ? [] : injectDoqDocuments(this.config, this.catalog.version.id, this.catalog.locale.id || undefined);
   /** Catalogs of every version of *this* locale: the version switcher must never leave the language. */
   private readonly versionCatalogs = this.versioned && !this.unknownVersion() ? injectDoqCatalogs(this.config, this.catalog.locale.id || undefined) : {};
@@ -213,34 +218,38 @@ export class DoqDocsComponent {
     const slug = this.routeSlug();
     return !!slug && !this.documents.some(doc => doc.slug === slug) && this.fallbackDocument() !== null;
   });
+  /**
+   * Which catalog the routed slug resolves from: its own locale, or the default locale under an
+   * untranslated notice. Private, so the public `document` signal keeps its 0.11 shape exactly.
+   */
+  private readonly documentSource = computed(() => {
+    const slug = this.routeSlug();
+    if (this.unknownVersion() || !slug) return null;
+    const own = this.documents.find(doc => doc.slug === slug);
+    if (own) return { slug, directory: this.catalog.contentDirectory, basePath: this.catalog.basePath, translated: true };
+    if (this.fallbackDocument()) return { slug, directory: this.defaultLocaleDirectory(), basePath: this.defaultLocaleBasePath(), translated: false };
+    return null;
+  });
   readonly document = toSignal(this.route.paramMap.pipe(
     map(params => params.get(this.config.routeParam ?? 'slug') ?? ''),
     switchMap(slug => {
-      const entry = this.unknownVersion() ? undefined : this.documents.find(doc => doc.slug === slug);
-      // A localized URL with no translation of its own may serve the default locale's document, but only
-      // when the host configured that fallback; the notice keeps it from being silent.
-      const fallback = !entry && slug && this.i18n.i18n?.fallback === 'default-locale' && !this.catalog.locale.default
-        ? this.defaultLocaleDocuments().find(doc => doc.slug === slug)
-        : undefined;
-      const resolved = entry ?? fallback;
-      if (!slug || !resolved) return of(null);
+      const source = this.documentSource();
+      if (!source || source.slug !== slug) return of(null);
       // Analog's injectContentFilesMap intentionally re-keys loaders by the
       // frontmatter slug. The canonical catalog resolves that public slug to
       // its source entry; use the matching Analog alias to load its module.
-      const directory = entry ? this.catalog.contentDirectory : this.defaultLocaleDirectory();
-      const basePath = entry ? this.catalog.basePath : this.defaultLocaleBasePath();
-      const contentBase = `src/content/${directory}/${resolved.slug}`;
+      const contentBase = `src/content/${source.directory}/${source.slug}`;
       const candidates = new Set([`${contentBase}.md`, `${contentBase}/index.md`]);
-      const key = Object.keys(this.contentMap).find(candidate => candidates.has(this.canonicalFilename(candidate, directory)));
+      const key = Object.keys(this.contentMap).find(candidate => candidates.has(this.canonicalFilename(candidate, source.directory)));
       const load = key ? this.contentMap[key] : undefined;
       if (!load) return of(null);
       const clearPendingTask = this.pendingTasks.add();
       return from(load()).pipe(
         switchMap(raw => {
           const parsed = parseRawContentFile<DocAttributes>(raw);
-          return from(this.renderer.render(parsed.content)).pipe(map(rendered => ({ filename: resolved.sourceFilename, slug: resolved.slug, basePath, attributes: parsed.attributes, content: parsed.content, toc: rendered.toc, translated: !!entry })));
+          return from(this.renderer.render(parsed.content)).pipe(map(rendered => ({ filename: `${source.directory}/${source.slug}.md`, slug: source.slug, attributes: parsed.attributes, content: parsed.content, toc: rendered.toc })));
         }),
-        catchError(error => { console.error(`Doq: failed to resolve ${resolved.sourceFilename}`, error); return of(null); }),
+        catchError(error => { console.error(`Doq: failed to resolve src/content/${source.directory}/${source.slug}.md`, error); return of(null); }),
         finalize(clearPendingTask),
         startWith(undefined),
       );
@@ -272,7 +281,7 @@ export class DoqDocsComponent {
       this.metadata.setAlternates([]);
     } else {
       this.metadata.set(doqPageTitle(title, this.copy.pageTitleSuffix, label), doc?.attributes.description);
-      this.metadata.setCanonical(doqCanonicalUrl(this.canonicalVersioning, doc.basePath === '/' ? `/${this.routeSlug()}` : `${doc.basePath}/${this.routeSlug()}`));
+      this.metadata.setCanonical(doqCanonicalUrl(this.canonicalVersioning, this.documentBasePath() === '/' ? `/${this.routeSlug()}` : `${this.documentBasePath()}/${this.routeSlug()}`));
       this.metadata.setAlternates(this.hreflangAlternates(this.routeSlug()));
     }
   });
@@ -289,6 +298,7 @@ export class DoqDocsComponent {
   private readonly enhancementEffect = effect(onCleanup => {
     const doc = this.document();
     this.activeHeading.set('');
+    this.pinnedHeading = undefined;
     this.rendered.set(false);
     onCleanup(() => this.disconnectHeadingObserver());
     if (!doc || !isPlatformBrowser(this.platformId)) return;
@@ -353,6 +363,8 @@ export class DoqDocsComponent {
   versionList() { return this.versions; }
   currentVersionLabel(): string { return this.versions[0]?.label ?? ''; }
   defaultLocaleLabel(): string { return this.i18n.i18n?.locales.find(locale => locale.default)?.label ?? ''; }
+  /** Mount path of the catalog the routed document actually came from, for its canonical URL. */
+  private documentBasePath(): string { return this.documentSource()?.basePath ?? this.catalog.basePath; }
   private defaultLocaleDirectory(): string { return this.i18n.defaultLocaleEntry?.contentDirectory ?? this.catalog.contentDirectory; }
   private defaultLocaleBasePath(): string {
     const paths = normalizeDoqPaths(this.config);
@@ -405,6 +417,14 @@ export class DoqDocsComponent {
     }
     if (target) target.scrollIntoView?.({ block: 'start' });
     else if (focusTarget) view?.scrollTo(0, 0);
+    // Following a fragment (TOC link, search result, deep link) must highlight that heading at once, and
+    // keep it highlighted while it is still on screen: the last section of a short page can never be
+    // scrolled to the top, so without the pin the reader would land on a section the TOC does not name.
+    if (target && this.headings().some(heading => heading.id === target.id)) {
+      this.activeHeading.set(target.id);
+      this.pinnedHeading = target.id;
+      this.revealActiveTocLink(this.hostElement.querySelector<HTMLElement>('.doq-root') ?? this.hostElement, target.id);
+    }
     if (!focusTarget) return;
     const focusable = target ?? this.hostElement.querySelector<HTMLElement>('.doq-doc-header h1');
     if (!focusable) return;
@@ -459,6 +479,8 @@ export class DoqDocsComponent {
       this.enhancementObserver = new IntersectionObserver(entries => {
         const visible = entries.filter(entry => entry.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
         if (visible?.target instanceof HTMLElement) {
+          if (this.pinnedHeading && this.pinnedStillVisible()) return;
+          this.pinnedHeading = undefined;
           this.activeHeading.set(visible.target.id);
           this.revealActiveTocLink(root, visible.target.id);
         }
@@ -493,13 +515,32 @@ export class DoqDocsComponent {
     this.tocResizeHandler = sync;
     this.documentRef.defaultView?.addEventListener('resize', sync, { passive: true });
   }
+  /** True while the heading the reader followed is still on screen, so the scroll-spy must not override it. */
+  private pinnedStillVisible(): boolean {
+    if (!this.pinnedHeading) return false;
+    const node = this.documentRef.getElementById(this.pinnedHeading);
+    if (!node) return false;
+    const box = node.getBoundingClientRect();
+    const viewport = this.documentRef.defaultView?.innerHeight ?? 0;
+    return box.top < viewport && box.bottom > 0;
+  }
   /** Keep the active link inside the rail's own scrollport, without moving the article or stealing focus. */
   private revealActiveTocLink(root: HTMLElement, id: string): void {
     const toc = root.querySelector<HTMLElement>('.doq-toc');
-    const link = toc?.querySelector<HTMLElement>(`a[href$="#${CSS.escape(id)}"]`);
-    if (!toc || !link || toc.scrollHeight <= toc.clientHeight + 1) return;
+    if (!toc) return;
+    // Matched by decoded hash rather than by a CSS selector: an id can contain characters a selector
+    // would need escaping for, and `CSS.escape` is not present in every environment (jsdom lacks it).
+    const link = Array.from(toc.querySelectorAll<HTMLAnchorElement>('a')).find(anchor => {
+      const raw = anchor.hash.slice(1);
+      try {
+        return decodeURIComponent(raw) === id;
+      } catch {
+        return raw === id;
+      }
+    });
+    if (!link || toc.scrollHeight <= toc.clientHeight + 1) return;
     const top = link.offsetTop - toc.clientHeight / 2 + link.clientHeight / 2;
-    toc.scrollTo({ top: Math.max(0, top), behavior: 'auto' });
+    toc.scrollTo?.({ top: Math.max(0, top), behavior: 'auto' });
   }
   /** A table wider than the column scrolls on its own (CSS), so it must be reachable by keyboard and have a name. */
   private syncScrollableTables(markdown: HTMLElement): void {

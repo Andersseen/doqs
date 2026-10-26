@@ -3,7 +3,7 @@ import { ActivatedRoute } from '@angular/router';
 import { injectContentFiles } from '@analogjs/content';
 import { DOQ_CONFIG, DoqConfig } from '@doqs/analog/config';
 import { DoqDocument, DoqDocumentAttributes, normalizeDoqDocument, sortDoqDocuments } from '@doqs/analog/config';
-import { normalizeDoqPaths } from '@doqs/analog/config';
+import { normalizeDoqPathsFull } from '@doqs/analog/config';
 import { assertDoqSlugAvailable, DoqCatalog, DoqResolvedLocale, doqReservedSegments, findDoqCatalog, getDoqCatalogs } from '@doqs/analog/config';
 import { DoqVersion, getDoqVersions } from '@doqs/analog/config';
 
@@ -13,7 +13,7 @@ import { DoqVersion, getDoqVersions } from '@doqs/analog/config';
  * mix across versions or languages. Call from an injection context.
  */
 export function injectDoqDocuments(config: DoqConfig = inject(DOQ_CONFIG), versionId?: string, localeId?: string): readonly DoqDocument[] {
-  const paths = normalizeDoqPaths(config);
+  const paths = normalizeDoqPathsFull(config);
   const catalog = resolveCatalog(paths, versionId, localeId);
   const { contentDirectory, basePath } = catalog;
   const files = injectContentFiles<DoqDocumentAttributes>(file => file.filename.includes(`/content/${contentDirectory}/`));
@@ -29,7 +29,7 @@ export function injectDoqDocuments(config: DoqConfig = inject(DOQ_CONFIG), versi
 
 /** Catalogs of every version of one locale, keyed by version id; used to resolve where the version selector points. */
 export function injectDoqCatalogs(config: DoqConfig = inject(DOQ_CONFIG), localeId?: string): Readonly<Record<string, readonly DoqDocument[]>> {
-  const paths = normalizeDoqPaths(config);
+  const paths = normalizeDoqPathsFull(config);
   const locale = resolveLocale(paths, localeId);
   const catalogs = getDoqCatalogs(paths).filter(catalog => catalog.locale.id === locale.id);
   // Delegates to injectDoqDocuments so an archive with no Markdown still fails loudly here, exactly as
@@ -42,7 +42,7 @@ export function injectDoqCatalogs(config: DoqConfig = inject(DOQ_CONFIG), locale
  * version is absent, which is how the language selector knows not to link to it.
  */
 export function injectDoqLocaleCatalogs(config: DoqConfig = inject(DOQ_CONFIG), versionId?: string): Readonly<Record<string, readonly DoqDocument[]>> {
-  const paths = normalizeDoqPaths(config);
+  const paths = normalizeDoqPathsFull(config);
   const version = resolveVersion(paths, versionId);
   const catalogs = getDoqCatalogs(paths).filter(catalog => catalog.version.id === version.id);
   return Object.fromEntries(catalogs.map(catalog => [catalog.locale.id, injectDoqDocuments(config, version.id, catalog.locale.id || undefined)]));
@@ -51,7 +51,7 @@ export function injectDoqLocaleCatalogs(config: DoqConfig = inject(DOQ_CONFIG), 
 /** The catalog one route renders, resolved from the route data `doqRoutes()` wrote. */
 export function injectDoqCatalog(config: DoqConfig = inject(DOQ_CONFIG)): DoqCatalog {
   const data = inject(ActivatedRoute).snapshot.data;
-  const paths = normalizeDoqPaths(config);
+  const paths = normalizeDoqPathsFull(config);
   return resolveCatalog(paths, data['doqVersion'] as string | undefined, data['doqLocale'] as string | undefined);
 }
 
@@ -67,7 +67,7 @@ export interface DoqVersionContext {
 /** Version of the routed page, taken from the route data written by doqRoutes(). Call from an injection context. */
 export function injectDoqVersion(config: DoqConfig = inject(DOQ_CONFIG)): DoqVersionContext {
   const data = inject(ActivatedRoute).snapshot.data;
-  const paths = normalizeDoqPaths(config);
+  const paths = normalizeDoqPathsFull(config);
   const versions = getDoqVersions(paths);
   const requested = data['doqVersion'] as string | undefined;
   const version = (requested === undefined ? undefined : versions.find(candidate => candidate.id === requested)) ?? versions[0]!;
@@ -87,7 +87,7 @@ export interface DoqLocaleContext {
 /** Locale of the routed page, taken from the route data written by doqRoutes(). Call from an injection context. */
 export function injectDoqLocale(config: DoqConfig = inject(DOQ_CONFIG)): DoqLocaleContext {
   const data = inject(ActivatedRoute).snapshot.data;
-  const paths = normalizeDoqPaths(config);
+  const paths = normalizeDoqPathsFull(config);
   const i18n = paths.i18n;
   if (!i18n) return { locales: [], locale: undefined, unknown: false, localized: false };
   const requested = data['doqLocale'] as string | undefined;
@@ -110,7 +110,7 @@ export function resolveDoqCopy(config: DoqConfig) {
   };
 }
 
-type ResolvedPaths = ReturnType<typeof normalizeDoqPaths>;
+type ResolvedPaths = ReturnType<typeof normalizeDoqPathsFull>;
 
 function resolveLocale(paths: ResolvedPaths, localeId?: string): DoqResolvedLocale {
   if (!paths.i18n) return { id: '', label: '', dir: 'ltr', prefix: '', contentDirectory: paths.contentDirectory, archives: {}, default: true };
