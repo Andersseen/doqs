@@ -1,5 +1,9 @@
 name: CI
 
+# The pull request pipeline is budgeted to finish in well under 30 minutes: jobs that build their own package start without
+# waiting for `build`, every job has a tight timeout, and browser installs are cached and bounded. The slow, rarely failing
+# Firefox/WebKit matrix runs weekly in ci-extended.yml (also on demand, and on pull requests labelled `full-ci`).
+
 on:
   pull_request:
   push:
@@ -19,7 +23,7 @@ jobs:
   static:
     name: Static checks (format, types, Agentyx lock, specs)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -42,7 +46,7 @@ jobs:
   unit:
     name: Unit and component tests
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -59,7 +63,7 @@ jobs:
   tooling-windows:
     name: Node tooling on Windows (CRLF checkout, junctions, paths)
     runs-on: windows-latest
-    timeout-minutes: 25
+    timeout-minutes: 15
     steps:
       # This repository pins LF in .gitattributes; verify:portable converts its copy to CRLF itself, which is what a consumer
       # repository without that attribute gets on Windows.
@@ -78,7 +82,7 @@ jobs:
   build:
     name: Production builds and package
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -128,7 +132,7 @@ jobs:
     name: Python contract tests
     needs: build
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -149,7 +153,7 @@ jobs:
     name: Playwright E2E
     needs: build
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -161,7 +165,9 @@ jobs:
       - uses: actions/download-artifact@v8
         with:
           name: builds
-      - run: PLAYWRIGHT_BROWSERS_PATH=0 pnpm exec playwright install --with-deps chromium
+      - uses: ./.github/actions/playwright-browsers
+        with:
+          browsers: chromium
       - run: pnpm test:e2e
       - uses: actions/upload-artifact@v7
         if: failure()
@@ -174,9 +180,8 @@ jobs:
 
   acceptance:
     name: MVP and 0.1 acceptance harness
-    needs: build
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -197,38 +202,10 @@ jobs:
         env:
           MVP_CONSUMER_ROOT: ${{ runner.temp }}/doq-consumer/dist/analog/public
 
-  e2e-browsers:
-    name: Playwright cross-browser (Firefox, WebKit)
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .nvmrc
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - uses: actions/download-artifact@v8
-        with:
-          name: builds
-      - run: PLAYWRIGHT_BROWSERS_PATH=0 pnpm exec playwright install --with-deps firefox webkit
-      - run: pnpm test:e2e:browsers
-      - uses: actions/upload-artifact@v7
-        if: failure()
-        with:
-          name: playwright-traces-browsers
-          retention-days: 7
-          path: |
-            test-results
-            playwright-report
-
   determinism:
     name: Deterministic builds (repeated clean builds, guard control)
-    needs: build
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -246,9 +223,8 @@ jobs:
 
   compat:
     name: Angular ${{ matrix.angular }} compatibility
-    needs: build
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -264,7 +240,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm build:doq
       - run: pnpm pack:doq
-      - run: PLAYWRIGHT_BROWSERS_PATH=0 pnpm exec playwright install --with-deps chromium
+      - uses: ./.github/actions/playwright-browsers
+        with:
+          browsers: chromium
       - run: pnpm verify:compat --angular=${{ matrix.angular }}
       - uses: actions/upload-artifact@v7
         if: failure()
@@ -277,9 +255,8 @@ jobs:
 
   scale:
     name: Content scaling budget (generated fixtures)
-    needs: build
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6

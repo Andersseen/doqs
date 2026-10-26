@@ -11,7 +11,7 @@ Committed code cannot configure npm, Cloudflare or GitHub account settings. Ever
 
 ## Security boundaries
 
-- Pull requests only run `ci.yml` (`contents: read`). No secrets, no `id-token`, no write permission.
+- Pull requests only run `ci.yml` and, when labelled `full-ci`, `ci-extended.yml` (both `contents: read`). No secrets, no `id-token`, no write permission. `ci-extended.yml` (the Firefox/WebKit matrix, also weekly and on demand) is never a release or deploy gate.
 - `release.yml` and `deploy-site.yml` start from `workflow_run`, so they run the workflow file from `main`. They act only when the CI run was a push to this repository's `main` (releases) or a same-repository branch (previews). Fork pull requests never reach them.
 - The npm job is the only job with `id-token: write`, runs in the `npm-publish` environment, installs no dependencies and executes no repository build code; it publishes the exact tarball CI built and verified (checked by SHA-256 against the eligibility job).
 - No npm token exists anywhere. npm authenticates the job through OIDC (Trusted Publishing) and attaches provenance automatically.

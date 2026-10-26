@@ -1,0 +1,50 @@
+name: CI extended
+
+# Checks too slow or too rarely broken to hold every pull request: the Firefox and WebKit matrix. Runs every Monday on main,
+# on demand (Actions → CI extended → Run workflow, any branch), and on pull requests that carry the `full-ci` label.
+
+on:
+  schedule:
+    - cron: '17 4 * * 1'
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-extended-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: true
+
+jobs:
+  e2e-browsers:
+    name: Playwright cross-browser (Firefox, WebKit)
+    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'full-ci')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm pack:doq
+      - uses: ./.github/actions/playwright-browsers
+        with:
+          browsers: firefox webkit
+      - run: pnpm test:e2e:browsers
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: playwright-traces-browsers
+          retention-days: 7
+          path: |
+            test-results
+            playwright-report
