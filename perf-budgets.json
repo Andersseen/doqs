@@ -102,9 +102,9 @@
     {
       "target": "site",
       "metric": "initialCssGzip",
-      "baseline": 16440,
-      "max": 17400,
-      "reason": "Stylesheet linked by the landing and the documentation (host Tailwind and Volt styles plus the Doqs core stylesheet). It was 11,160 B before the documentation was added. 0.9: the Doqs core stylesheet gained the playground styles (about 0.9 KB gzip)."
+      "baseline": 17372,
+      "max": 18240,
+      "reason": "Stylesheet linked by the landing and the documentation (host Tailwind and Volt styles plus the Doqs core stylesheet). It was 11,160 B before the documentation was added. 0.9: the Doqs core stylesheet gained the playground styles (about 0.9 KB gzip). Official-site 1.0 readiness: the redesigned landing and the new /examples page add utility classes plus about 1 KB raw of site CSS (active-route indicator, hero glow, documentation preview window); measured 16,772 B before and 17,372 B after (+600 B gzip) on the same machine."
     },
     {
       "target": "site",
@@ -116,9 +116,9 @@
     {
       "target": "site",
       "metric": "staticPages",
-      "baseline": 44,
-      "max": 44,
-      "reason": "The landing, the documentation index and 19 documents (0.9 adds the Interactive playgrounds guide); an unexpected extra page means a duplicate route. The landing, the documentation index and 41 documents: 0.10 adds two guides and the 20-page Content tooling API reference (21 + 22). 0.11 adds the guide Adopting Doqs in an existing library site (44 pages)."
+      "baseline": 45,
+      "max": 45,
+      "reason": "The landing, the documentation index and 19 documents (0.9 adds the Interactive playgrounds guide); an unexpected extra page means a duplicate route. The landing, the documentation index and 41 documents: 0.10 adds two guides and the 20-page Content tooling API reference (21 + 22). 0.11 adds the guide Adopting Doqs in an existing library site (44 pages). The official-site 1.0 readiness work adds the /examples page (45 pages)."
     },
     {
       "target": "scale",

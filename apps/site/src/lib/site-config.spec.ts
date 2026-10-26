@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildRobots, buildSitemap, canonicalUrl, installCommand, normalizeOrigin, originHeadTags, site, siteLinks } from './site-config.ts';
+import { buildRobots, buildSitemap, canonicalUrl, installCommand, navItems, normalizeOrigin, originHeadTags, pageMeta, site, siteLinks } from './site-config.ts';
 
 describe('UNIT-025 canonical origin and crawler files', () => {
   it('accepts only a plain https origin (http for localhost) and strips any path', () => {
@@ -37,6 +37,27 @@ describe('UNIT-025 canonical origin and crawler files', () => {
     expect(siteLinks.github).toBe('https://github.com/Andersseen/doqs');
     expect(siteLinks.npm).toBe('https://www.npmjs.com/package/@doqs/analog');
     expect(installCommand).toContain('@doqs/analog');
-    expect(site.routes).toEqual(['/']);
+    expect(site.routes).toEqual(['/', '/examples']);
+  });
+});
+
+describe('site navigation and page metadata', () => {
+  it('lists real routes only, with Docs last', () => {
+    expect(navItems.map((item) => item.path)).toEqual(['/', '/examples', '/docs']);
+    expect(navItems.some((item) => item.path.includes('#'))).toBe(false);
+    expect(navItems.filter((item) => item.exact).map((item) => item.path)).toEqual(['/']);
+  });
+
+  it('gives every site-owned route its own title and description', () => {
+    for (const route of site.routes) {
+      expect(pageMeta[route]?.title, route).toBeTruthy();
+      expect(pageMeta[route]?.description, route).toBeTruthy();
+    }
+    expect(new Set(site.routes.map((route) => pageMeta[route]?.title)).size).toBe(site.routes.length);
+  });
+
+  it('lists the site routes and the documentation routes in the sitemap', () => {
+    const sitemap = buildSitemap('https://docs.example.com', [...site.routes, '/docs']);
+    for (const path of ['/', '/examples', '/docs']) expect(sitemap).toContain(`<loc>${canonicalUrl('https://docs.example.com', path)}</loc>`);
   });
 });

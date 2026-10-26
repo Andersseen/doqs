@@ -38,7 +38,9 @@ describe('COMP-100 the official site is a Doqs consumer', () => {
     expect(screen.getByRole('navigation', { name: 'Main' })).toBeTruthy();
     expect(screen.getByRole('navigation', { name: 'Footer' })).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Skip to content' }).getAttribute('href')).toBe('#content');
-    expect(screen.getByRole('link', { name: 'Docs' }).getAttribute('href')).toBe('/docs');
+    const main = screen.getByRole('navigation', { name: 'Main' });
+    expect(within(main).getByRole('link', { name: 'Docs' }).getAttribute('href')).toBe('/docs');
+    expect(within(main).getByRole('link', { name: 'Docs' }).getAttribute('aria-current')).toBe('page');
   });
 
   it('moves focus to the routed content when the skip link is used on a Doqs page', async () => {

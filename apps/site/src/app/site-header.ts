@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, Directive, inject } from '@angular/core';
+import { RouterLink, RouterLinkActive } from '@angular/router';
 import { injectDialogRef } from 'ng-primitives/dialog';
 import {
   VoltDrawer,
@@ -16,7 +17,7 @@ import { LmnMoonIcon } from 'lumen-icons/moon';
 import { LmnPackageIcon } from 'lumen-icons/package';
 import { LmnSunIcon } from 'lumen-icons/sun';
 import { LmnXMarkIcon } from 'lumen-icons/x-mark';
-import { siteLinks } from '../lib/site-config';
+import { navItems, siteLinks } from '../lib/site-config';
 import { ThemeController } from './theme';
 
 /** Closes the surrounding Volt drawer when a link inside it is followed; the link itself navigates natively. */
@@ -43,6 +44,8 @@ class CloseDrawer {
     LmnSunIcon,
     LmnXMarkIcon,
     CloseDrawer,
+    RouterLink,
+    RouterLinkActive,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -50,15 +53,25 @@ class CloseDrawer {
       <div class="mx-auto flex min-h-16 w-[min(100%-2rem,70rem)] items-center justify-between gap-4">
         <a
           class="inline-flex items-baseline gap-0.5 rounded-md font-serif text-2xl leading-none font-bold tracking-tighter text-foreground no-underline"
-          href="/"
+          routerLink="/"
           aria-label="Doqs, home"
         >
           <span aria-hidden="true">doqs</span><i class="size-1.5 rounded-full bg-primary" aria-hidden="true"></i>
         </a>
 
         <nav class="hidden items-center gap-1 md:flex" aria-label="Main">
-          @for (link of sections; track link.href) {
-            <a voltButton variant="ghost" size="sm" [href]="link.href">{{ link.label }}</a>
+          @for (link of sections; track link.path) {
+            <a
+              voltButton
+              variant="ghost"
+              size="sm"
+              class="nav-link"
+              [routerLink]="link.path"
+              routerLinkActive="is-active"
+              ariaCurrentWhenActive="page"
+              [routerLinkActiveOptions]="{ exact: link.exact }"
+              >{{ link.label }}</a
+            >
           }
           <volt-separator orientation="vertical" class="mx-1 h-5" />
           <a voltButton variant="ghost" size="sm" [href]="links.github" rel="noopener">
@@ -104,15 +117,26 @@ class CloseDrawer {
           <div class="flex items-start justify-between gap-3">
             <div>
               <h2 voltDrawerTitle>Menu</h2>
-              <p voltDrawerDescription>Jump to a section or open the project.</p>
+              <p voltDrawerDescription>Browse the site or open the project.</p>
             </div>
             <volt-drawer-close label="Close menu"><lmn-x-mark [size]="16" /></volt-drawer-close>
           </div>
           <volt-separator />
           <nav class="flex flex-col gap-1" aria-label="Main">
-            @for (link of sections; track link.href) {
-              <a voltButton variant="ghost" class="justify-start" [href]="link.href" appCloseDrawer>{{ link.label }}</a>
+            @for (link of sections; track link.path) {
+              <a
+                voltButton
+                variant="ghost"
+                class="nav-link justify-start"
+                [routerLink]="link.path"
+                routerLinkActive="is-active"
+                ariaCurrentWhenActive="page"
+                [routerLinkActiveOptions]="{ exact: link.exact }"
+                appCloseDrawer
+                >{{ link.label }}</a
+              >
             }
+            <volt-separator class="my-1" />
             <a voltButton variant="ghost" class="justify-start" [href]="links.github" rel="noopener" appCloseDrawer>
               <lmn-github [size]="16" /> GitHub
             </a>
@@ -128,11 +152,5 @@ class CloseDrawer {
 export class SiteHeader {
   protected readonly links = siteLinks;
   protected readonly theme = inject(ThemeController);
-  protected readonly sections = [
-    { href: '/docs', label: 'Docs' },
-    { href: '/#features', label: 'Features' },
-    { href: '/#getting-started', label: 'Getting started' },
-    { href: '/#interactive-markdown', label: 'Interactive Markdown' },
-  ] as const;
-
+  protected readonly sections = navItems;
 }

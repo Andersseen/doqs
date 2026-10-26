@@ -12,7 +12,7 @@ import { SiteHeader } from './site-header';
   template: `
     <a class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-4 focus:z-50 focus:rounded-md focus:bg-foreground focus:px-4 focus:py-2 focus:text-background" href="#content" (click)="skipToContent($event)">Skip to content</a>
     <app-site-header />
-    <div id="content" tabindex="-1" class="outline-none"><router-outlet /></div>
+    <div id="content" tabindex="-1" class="min-h-[85vh] outline-none"><router-outlet /></div>
     <app-site-footer />
   `,
 })

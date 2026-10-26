@@ -15,7 +15,7 @@ export interface CodeExample {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <volt-tabs [value]="examples()[0].id">
-      <volt-tabs-list class="mb-3 flex-wrap" aria-label="Setup steps">
+      <volt-tabs-list class="mb-3 h-auto w-full flex-wrap justify-start" aria-label="Setup steps">
         @for (example of examples(); track example.id) {
           <volt-tabs-trigger [value]="example.id">{{ example.tab }}</volt-tabs-trigger>
         }

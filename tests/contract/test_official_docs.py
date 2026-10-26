@@ -71,7 +71,7 @@ def test_contract_081_documentation_metadata_is_per_page_and_never_invents_a_dom
             assert len(canonicals) == 1 and canonicals[0].endswith(route), (route, canonicals)
             assert re.search(rf'<meta property="og:url" content="{re.escape(canonicals[0])}"', html), route
     landing = _html(site_official, "/")
-    assert "Documentation that belongs in your app." in landing
+    assert "Your documentation, inside your Angular app." in landing
     landing_canonical = re.findall(r'<link rel="canonical" href="([^"]+)"', landing)
     assert len(landing_canonical) <= 1 and all(href.endswith("/") for href in landing_canonical)
 
@@ -85,7 +85,7 @@ def test_contract_082_pagefind_indexes_exactly_the_documentation_pages(site_offi
     urls = {page["url"] for page in pages}
     assert "/" not in urls and "/docs/" not in urls
     landing_text = re.sub(r"<[^>]+>", " ", _html(site_official, "/"))
-    for phrase in ("Documentation that belongs in your app", "What Doqs does"):
+    for phrase in ("Your documentation, inside your Angular app", "made of your app, not wrapped around it"):
         assert phrase in landing_text
         assert not [page["url"] for page in pages if phrase in page["content"]], phrase
     for page in pages:

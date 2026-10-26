@@ -5,6 +5,7 @@ export const siteLinks = {
   readme: 'https://github.com/Andersseen/doqs/blob/main/packages/doq/README.md',
   changelog: 'https://github.com/Andersseen/doqs/blob/main/packages/doq/CHANGELOG.md',
   license: 'https://github.com/Andersseen/doqs/blob/main/LICENSE',
+  parity: 'https://github.com/Andersseen/doqs/blob/main/docs/adoption/consumer-parity.md',
 } as const;
 
 export const installCommand = 'pnpm add @doqs/analog @analogjs/content @analogjs/router prismjs';
@@ -13,9 +14,29 @@ export const site = {
   title: 'Doqs — Documentation that lives in your Angular app',
   description:
     'Doqs adds Markdown documentation to an existing Angular and Analog.js app — SSR/SSG, sidebar, table of contents and search — while your branding, routing and Angular components stay yours.',
-  /** Every route the build prerenders; the sitemap lists exactly these. */
-  routes: ['/'],
+  /** Every site-owned route the build prerenders; the sitemap lists these plus the documentation routes. */
+  routes: ['/', '/examples'],
 } as const;
+
+/** The global navigation: real application routes only, Docs last. `exact` keeps Home from matching every route. */
+export const navItems = [
+  { label: 'Home', path: '/', exact: true },
+  { label: 'Examples', path: '/examples', exact: false },
+  { label: 'Docs', path: '/docs', exact: false },
+] as const;
+
+/** Per-page metadata for the pages the site owns; documentation pages set their own title and description. */
+export const pageMeta: Readonly<Record<string, { readonly title: string; readonly description: string }>> = {
+  '/': { title: site.title, description: site.description },
+  '/examples': {
+    title: 'Examples — Doqs',
+    description:
+      'Live Doqs examples: an Angular component placed from Markdown, a playground that rewrites its own usage code, an install command demo and generated API reference pages.',
+  },
+};
+
+/** The social card; it is only referenced when an absolute origin is known. */
+export const socialImage = { path: '/og.png', width: 1200, height: 630, alt: 'Doqs — documentation that lives in your Angular app' } as const;
 
 /**
  * The public origin comes from the DOQ_SITE_ORIGIN build variable, never from a guess. Returns undefined when it is

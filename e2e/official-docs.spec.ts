@@ -17,7 +17,7 @@ test.describe('E2E-100 the official site documents Doqs with Doqs', () => {
     await page.waitForLoadState('networkidle');
     await expect(page).toHaveTitle(/^Doqs — Documentation that lives/);
     await expect(
-      page.getByRole('heading', { level: 1, name: 'Documentation that belongs in your app.' }),
+      page.getByRole('heading', { level: 1, name: 'Your documentation, inside your Angular app.' }),
     ).toBeVisible();
     await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Docs', exact: true }).click();
     await expect(page).toHaveURL(`${docs}`);

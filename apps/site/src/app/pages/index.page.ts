@@ -1,63 +1,54 @@
 import { NgComponentOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, type Type } from '@angular/core';
-import {
-  VoltBadge,
-  VoltCard,
-  VoltCardContent,
-  VoltCardDescription,
-  VoltCardHeader,
-  VoltCardTitle,
-  VoltNativeButton,
-  VoltSeparator,
-} from '@voltui/components';
+import { RouterLink } from '@angular/router';
+import { VoltBadge, VoltNativeButton } from '@voltui/components';
 import { MoveEnterDirective, MoveHoverDirective, MoveInViewDirective, MoveStaggerDirective, MoveTapDirective } from 'angular-movement';
 import { LmnArrowRightIcon } from 'lumen-icons/arrow-right';
 import { LmnCodeBracketIcon } from 'lumen-icons/code-bracket';
-import { LmnDocumentTextIcon } from 'lumen-icons/document-text';
-import { LmnGithubIcon } from 'lumen-icons/github';
+import { LmnCommandLineIcon } from 'lumen-icons/command-line';
 import { LmnMagnifyingGlassIcon } from 'lumen-icons/magnifying-glass';
-import { LmnPackageIcon } from 'lumen-icons/package';
 import { LmnPuzzlePieceIcon } from 'lumen-icons/puzzle-piece';
 import { LmnServerStackIcon } from 'lumen-icons/server-stack';
 import { LmnSquaresPlusIcon } from 'lumen-icons/squares-plus';
 import { LmnSwatchIcon } from 'lumen-icons/swatch';
-import { LmnViewColumnsIcon } from 'lumen-icons/view-columns';
+import { LmnTagIcon } from 'lumen-icons/tag';
 import { CodeTabs, type CodeExample } from '../code-tabs';
+import { CodeBlock } from '../components/code-block';
+import { ProductPreview } from '../components/product-preview';
 import { CopyCommand } from '../copy-command';
-import { EnterDemo } from '../enter-demo';
 import { installCommand, siteLinks } from '../../lib/site-config';
 
-interface Feature {
+interface Capability {
   readonly icon: Type<unknown>;
   readonly title: string;
   readonly text: string;
-  readonly featured?: boolean;
 }
 
-const features: readonly Feature[] = [
-  {
-    icon: LmnPuzzlePieceIcon,
-    title: 'Angular components inside Markdown',
-    text: 'Register your own standalone components once, then place them between paragraphs with a one-line ::demo[id] directive. Interactive, server-rendered and hydrated. Use ::playground[id] to add input controls, an event list and copyable usage code.',
-    featured: true,
-  },
-  { icon: LmnCodeBracketIcon, title: 'Native Angular and Analog.js', text: 'Routes come from doqRoutes() and content from Analog’s own content files. Your router and providers stay yours.' },
-  { icon: LmnDocumentTextIcon, title: 'Rich Markdown pages', text: 'Frontmatter, nested folders and custom slugs, plus built-in callouts, accessible tabs, step guides and titled code, all in plain Markdown.' },
-  { icon: LmnServerStackIcon, title: 'SSR and SSG', text: 'doqPrerenderRoutes() feeds Analog’s prerenderer, so every page ships as static HTML and hydrates cleanly.' },
-  { icon: LmnViewColumnsIcon, title: 'Sidebar and table of contents', text: 'Grouped navigation, an “On this page” index, previous and next links and a mobile drawer.' },
-  { icon: LmnMagnifyingGlassIcon, title: 'Pagefind full-text search', text: 'Optional and static: an index built from your prerendered output. No backend, off by default.' },
-  { icon: LmnSwatchIcon, title: 'Host-owned themes and layout', text: 'Restyle with --host-docs-* CSS tokens. Doqs sets no global html or body styles.' },
-  { icon: LmnCodeBracketIcon, title: 'Versioned documentation', text: 'Keep older releases readable at stable /v/<id> URLs. An accessible version selector, context-preserving switching, per-version prerendering and version-filtered search, all optional.' },
-  { icon: LmnCodeBracketIcon, title: 'API reference from source', text: 'doq-api reads your library’s public TypeScript API, with signal inputs, outputs, models and JSDoc, and writes ordinary Markdown pages. A check command fails CI when they are stale.' },
-  { icon: LmnSquaresPlusIcon, title: 'Composition slots', text: 'Add your own standalone components after the docs index intro or after every document.' },
-];
-
 const steps = [
-  ['Install Doqs', 'Add the package next to Analog’s content packages.'],
-  ['Configure the documentation region', 'Share the paths, prerender with Analog and register Doqs in your app config.'],
-  ['Write Markdown', 'Drop files into src/content/docs. Routes, sidebar and table of contents follow. Add ::demo[id] lines where a live component belongs.'],
+  ['Install', 'Add the package next to Analog’s content packages.'],
+  ['Configure', 'Share the paths, prerender with Analog and register Doqs in your app config.'],
+  ['Write Markdown', 'Drop files into src/content/docs. Routes, sidebar and table of contents follow.'],
   ['Build and deploy', 'vite build prerenders everything to static files you can host anywhere.'],
 ] as const;
+
+/** The smaller capabilities, shown as a quiet list so the three differentiators above keep the weight. */
+const capabilities: readonly Capability[] = [
+  { icon: LmnMagnifyingGlassIcon, title: 'Static full-text search', text: 'Optional Pagefind index built from your prerendered output. No backend, off by default.' },
+  { icon: LmnServerStackIcon, title: 'SSR and SSG', text: 'doqPrerenderRoutes() feeds Analog’s prerenderer: every page ships as static HTML and hydrates cleanly.' },
+  { icon: LmnTagIcon, title: 'Versioned documentation', text: 'Keep older releases readable at stable /v/<id> URLs, with a version selector and version-filtered search.' },
+  { icon: LmnSwatchIcon, title: 'Host-owned theme and layout', text: 'Restyle with --host-docs-* CSS tokens. Doqs sets no global html or body styles.' },
+  { icon: LmnSquaresPlusIcon, title: 'Composition slots', text: 'Add your own standalone components after the docs index intro or after every document.' },
+  { icon: LmnCommandLineIcon, title: 'CLI', text: 'doq init scaffolds the files, doq doctor checks the integration and reports what it cannot verify.' },
+];
+
+const demoDirective = `## Try it
+
+::demo[enter-animation]`;
+
+const sourceDirective = `::source{file="src/button.ts" region="usage" title="button.ts"}`;
+
+const apiCommand = `pnpm exec doq-api generate --entry src/public-api.ts
+pnpm exec doq-api check --entry src/public-api.ts`;
 
 const examples: readonly CodeExample[] = [
   {
@@ -135,191 +126,162 @@ const doqConfig = defineDoqConfig({
   },
 ];
 
-const markdownCode = `---
-title: Getting started
----
-
-## Installation
-
-Pick a package manager and copy the command:
-
-::demo[install-command]
-
-## Try it
-
-::demo[enter-animation]
-
-The text after a demo is still ordinary, searchable Markdown.`;
-
 @Component({
   imports: [
     NgComponentOutlet,
+    RouterLink,
     VoltBadge,
-    VoltCard,
-    VoltCardContent,
-    VoltCardDescription,
-    VoltCardHeader,
-    VoltCardTitle,
     VoltNativeButton,
-    VoltSeparator,
     MoveEnterDirective,
     MoveHoverDirective,
     MoveInViewDirective,
     MoveStaggerDirective,
     MoveTapDirective,
     LmnArrowRightIcon,
-    LmnGithubIcon,
-    LmnPackageIcon,
+    LmnPuzzlePieceIcon,
+    LmnCodeBracketIcon,
+    CodeBlock,
     CodeTabs,
     CopyCommand,
-    EnterDemo,
+    ProductPreview,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <main id="main">
       <section class="relative" aria-labelledby="hero-title">
         <div class="hero-grid pointer-events-none absolute inset-0 -z-10 opacity-40" aria-hidden="true"></div>
-        <div class="mx-auto grid w-[min(100%-2rem,70rem)] items-center gap-12 py-12 sm:py-16 lg:grid-cols-[1.1fr_0.9fr] lg:py-24">
-          <div>
+        <div class="hero-glow pointer-events-none absolute inset-x-0 top-0 -z-10 h-[32rem]" aria-hidden="true"></div>
+        <div class="mx-auto w-[min(100%-2rem,70rem)] pt-12 pb-10 sm:pt-16 lg:pt-24">
+          <div class="max-w-3xl">
             <volt-badge variant="secondary" class="font-mono text-[0.7rem] tracking-wider uppercase">Angular · Analog.js · Markdown</volt-badge>
-            <h1 id="hero-title" class="mt-5 text-[clamp(2.5rem,7vw,4.6rem)] leading-[1.05] font-bold text-balance">
-              Documentation that belongs in your app.
+            <h1 id="hero-title" class="mt-5 text-[clamp(2.5rem,7vw,4.6rem)] leading-[1.04] font-bold text-balance">
+              Your documentation, inside your Angular app.
             </h1>
-            <p class="mt-6 max-w-xl text-lg text-muted-foreground">
-              Doqs adds a Markdown-driven documentation region to the Angular and Analog.js application you already have.
-              Server-rendered and statically generated, with your branding, your routes and your Angular components left exactly where they are.
+            <p class="mt-6 max-w-2xl text-lg text-muted-foreground">
+              Doqs adds Markdown documentation to the Angular and Analog.js application you already have: server-rendered, statically generated and searchable,
+              with real Angular components living between the paragraphs. Your layout, routes and theme stay yours.
             </p>
             <p class="mt-8 flex flex-wrap gap-3">
-              <a voltButton size="lg" href="#getting-started" moveWhileHover="lift" moveWhileTap="press">
-                Get Started <lmn-arrow-right [size]="16" />
+              <a voltButton size="lg" routerLink="/docs/getting-started" moveWhileHover="lift" moveWhileTap="press">
+                Get started <lmn-arrow-right [size]="16" />
               </a>
-              <a voltButton size="lg" variant="outline" [href]="links.github" rel="noopener" moveWhileHover="lift" moveWhileTap="press">
-                <lmn-github [size]="16" /> View on GitHub
-              </a>
-              <a voltButton size="lg" variant="ghost" [href]="links.npm" rel="noopener">
-                <lmn-package [size]="16" /> npm package
-              </a>
+              <a voltButton size="lg" variant="outline" routerLink="/examples" moveWhileHover="lift" moveWhileTap="press">Explore examples</a>
             </p>
+            <div class="mt-6 max-w-2xl"><app-copy-command [command]="installCommand" /></div>
           </div>
-          <figure class="m-0" [moveEnter]="{ y: [16, 0] }" moveDuration="500ms">
-            <volt-card>
-              <volt-card-content class="grid gap-2 p-3" aria-hidden="true">
-                <div class="rounded-md border border-dashed border-border p-3 text-center font-mono text-xs text-muted-foreground">Your header, navigation and brand</div>
-                <div class="grid grid-cols-[1fr_2.2fr_1fr] gap-2 rounded-lg border-2 border-primary p-2.5 text-[0.7rem]">
-                  @for (part of anatomy; track part) {
-                    <div class="grid content-start gap-1.5">
-                      <b class="font-mono font-semibold text-primary">{{ part }}</b>
-                      <span class="h-2 rounded bg-border"></span>
-                      <span class="h-2 rounded bg-border"></span>
-                      <span class="h-2 w-3/5 rounded bg-border"></span>
-                    </div>
-                  }
-                </div>
-                <div class="rounded-md border border-dashed border-border p-3 text-center font-mono text-xs text-muted-foreground">Your footer and routes</div>
-              </volt-card-content>
-            </volt-card>
-            <figcaption class="mt-3 text-sm text-muted-foreground">
-              Doqs renders only the documentation region. Everything around it is your application.
-            </figcaption>
-          </figure>
+          <div class="mt-12" [moveEnter]="{ y: [16, 0] }" moveDuration="500ms"><app-product-preview /></div>
         </div>
       </section>
 
-      <section id="features" class="mx-auto w-[min(100%-2rem,70rem)] border-t border-border py-14 sm:py-20" aria-labelledby="features-title">
-        <h2 id="features-title" class="text-[clamp(1.8rem,4vw,2.6rem)] leading-tight">What Doqs does</h2>
-        <ul class="mt-8 grid list-none gap-4 p-0 sm:grid-cols-2 lg:grid-cols-4" moveStagger moveStaggerStep="60ms">
-          @for (feature of features; track feature.title) {
-            <li [class]="feature.featured ? 'sm:col-span-2 lg:row-span-2' : ''" moveInView="fade-up">
-              <volt-card [class]="'h-full ' + (feature.featured ? 'border-primary/40 bg-muted' : '')">
-                <volt-card-header>
-                  <span class="flex self-start"><ng-container *ngComponentOutlet="feature.icon; inputs: { size: 24, tone: 'primary' }" /></span>
-                  <volt-card-title class="mt-3">
-                    <h3 [class]="feature.featured ? 'text-2xl' : 'text-lg'">{{ feature.title }}</h3>
-                  </volt-card-title>
-                </volt-card-header>
-                <volt-card-content>
-                  <p class="m-0 text-sm text-muted-foreground" [class.text-base]="feature.featured">{{ feature.text }}</p>
-                @if (feature.featured) {
-                    <pre class="mt-6 mb-0 overflow-x-auto rounded-lg border border-border bg-background p-4 font-mono text-sm" aria-hidden="true"><code>## Try it
+      <section class="mx-auto w-[min(100%-2rem,70rem)] border-t border-border py-14 sm:py-20" aria-labelledby="differentiators-title">
+        <p class="m-0 font-mono text-xs tracking-wider text-primary uppercase">What Doqs adds</p>
+        <h2 id="differentiators-title" class="mt-2 max-w-2xl text-[clamp(1.8rem,4vw,2.6rem)] leading-tight">Documentation that is made of your app, not wrapped around it</h2>
 
-::demo[enter-animation]</code></pre>
-                  }
-                </volt-card-content>
-              </volt-card>
+        <div class="mt-10 grid gap-10">
+          <article class="grid items-center gap-6 lg:grid-cols-2 lg:gap-12">
+            <div>
+              <lmn-puzzle-piece class="flex" [size]="24" tone="primary" aria-hidden="true" />
+              <h3 class="mt-3 text-2xl">Angular components inside Markdown</h3>
+              <p class="mt-3 text-muted-foreground">
+                Register a standalone component once and place it between paragraphs with one line. It renders on the server and hydrates in the browser.
+                Register it as a playground and readers can change its inputs, watch its outputs and copy usage code.
+                Doqs is not MDX: a directive only names a component your application registered.
+              </p>
+              <a class="mt-4 inline-flex items-center gap-1.5 font-medium text-primary underline-offset-4 hover:underline" routerLink="/examples">See it working <lmn-arrow-right [size]="14" /></a>
+            </div>
+            <app-code-block file="docs/guides/example.md" [code]="demoDirective" />
+          </article>
+
+          <article class="grid items-center gap-6 lg:grid-cols-2 lg:gap-12">
+            <div class="lg:order-2">
+              <lmn-code-bracket class="flex" [size]="24" tone="primary" aria-hidden="true" />
+              <h3 class="mt-3 text-2xl">API reference generated from your source</h3>
+              <p class="mt-3 text-muted-foreground">
+                doq-api reads your library’s public TypeScript API, with signal inputs, outputs, models and JSDoc, and writes ordinary Markdown pages that share the sidebar, search and theme.
+                A check command fails CI when they are stale.
+              </p>
+              <a class="mt-4 inline-flex items-center gap-1.5 font-medium text-primary underline-offset-4 hover:underline" routerLink="/docs/guides/api-reference">Angular API reference <lmn-arrow-right [size]="14" /></a>
+            </div>
+            <app-code-block class="lg:order-1" file="terminal" [code]="apiCommand" />
+          </article>
+
+          <article class="grid items-center gap-6 lg:grid-cols-2 lg:gap-12">
+            <div>
+              <lmn-code-bracket class="flex" [size]="24" tone="primary" aria-hidden="true" />
+              <h3 class="mt-3 text-2xl">Examples that cannot drift</h3>
+              <p class="mt-3 text-muted-foreground">
+                Pull a named region or line range straight from a file in your repository. The page is generated, committed and checked, so a code sample always matches the code it documents.
+              </p>
+              <a class="mt-4 inline-flex items-center gap-1.5 font-medium text-primary underline-offset-4 hover:underline" routerLink="/docs/guides/content-authoring" fragment="source-backed-code">Source-backed code <lmn-arrow-right [size]="14" /></a>
+            </div>
+            <app-code-block file="docs/guides/example.md" [code]="sourceDirective" />
+          </article>
+        </div>
+
+        <ul class="mt-14 grid list-none gap-x-8 gap-y-8 border-t border-border p-0 pt-10 sm:grid-cols-2 lg:grid-cols-3" moveStagger moveStaggerStep="50ms">
+          @for (item of capabilities; track item.title) {
+            <li moveInView="fade-up" [moveInViewOnce]="true">
+              <span class="flex"><ng-container *ngComponentOutlet="item.icon; inputs: { size: 24, tone: 'primary' }" /></span>
+              <h3 class="mt-3 text-lg">{{ item.title }}</h3>
+              <p class="mt-1.5 mb-0 text-sm text-muted-foreground">{{ item.text }}</p>
             </li>
           }
         </ul>
       </section>
 
       <section id="getting-started" class="mx-auto w-[min(100%-2rem,70rem)] border-t border-border py-14 sm:py-20" aria-labelledby="start-title">
-        <h2 id="start-title" class="text-[clamp(1.8rem,4vw,2.6rem)] leading-tight">Getting started</h2>
-        <p class="mt-4 mb-6 max-w-2xl text-muted-foreground">
+        <p class="m-0 font-mono text-xs tracking-wider text-primary uppercase">Quick start</p>
+        <h2 id="start-title" class="mt-2 text-[clamp(1.8rem,4vw,2.6rem)] leading-tight">Up and running in four steps</h2>
+        <p class="mt-4 mb-8 max-w-2xl text-muted-foreground">
           Doqs plugs into an Analog app. Analog keeps its own configuration; Doqs adds its own. The two are separate on purpose.
         </p>
-        <app-copy-command [command]="installCommand" />
-        <div class="mt-6">
-          <app-code-tabs [examples]="examples" />
-        </div>
-        <p class="mt-6 max-w-3xl text-muted-foreground">
-          Import <code class="rounded bg-muted px-1.5 py-0.5 font-mono text-[0.9em]">&#64;doqs/analog/styles.css</code> once in your global stylesheet.
-          Run <code class="rounded bg-muted px-1.5 py-0.5 font-mono text-[0.9em]">pnpm exec doq init</code> to scaffold the files and
-          <code class="rounded bg-muted px-1.5 py-0.5 font-mono text-[0.9em]">pnpm exec doq doctor</code> to check the integration. The complete guide is the
-          <a class="text-primary underline underline-offset-4" href="/docs/getting-started">documentation</a>.
-        </p>
-      </section>
-
-      <section class="mx-auto w-[min(100%-2rem,70rem)] border-t border-border py-14 sm:py-20" aria-labelledby="how-title">
-        <h2 id="how-title" class="text-[clamp(1.8rem,4vw,2.6rem)] leading-tight">How it works</h2>
-        <ol class="mt-8 grid list-none grid-cols-1 gap-4 p-0 md:grid-cols-4" moveStagger moveStaggerStep="60ms">
+        <ol class="m-0 mb-10 grid list-none gap-4 p-0 sm:grid-cols-2 lg:grid-cols-4">
           @for (step of steps; track step[0]; let i = $index) {
-            <li moveInView="fade-up">
-              <volt-card class="h-full">
-                <volt-card-header>
-                  <volt-badge variant="outline" class="w-fit font-mono" aria-hidden="true">{{ i + 1 }}</volt-badge>
-                  <volt-card-title class="mt-2"><h3 class="text-lg">{{ step[0] }}</h3></volt-card-title>
-                </volt-card-header>
-                <volt-card-content>
-                  <p class="m-0 text-sm text-muted-foreground">{{ step[1] }}</p>
-                </volt-card-content>
-              </volt-card>
+            <li class="border-t-2 border-primary/40 pt-4">
+              <span class="font-mono text-xs text-muted-foreground" aria-hidden="true">0{{ i + 1 }}</span>
+              <h3 class="mt-1 text-lg">{{ step[0] }}</h3>
+              <p class="mt-1 mb-0 text-sm text-muted-foreground">{{ step[1] }}</p>
             </li>
           }
         </ol>
-        <volt-separator class="mt-10" />
+        <app-code-tabs [examples]="examples" />
         <p class="mt-6 max-w-3xl text-muted-foreground">
-          Doqs is not MDX: there is no JavaScript in Markdown and no template compilation. A directive only names a component your application registered.
+          Import <code class="rounded bg-muted px-1.5 py-0.5 font-mono text-[0.9em]">&#64;doqs/analog/styles.css</code> once in your global stylesheet, then run
+          <code class="rounded bg-muted px-1.5 py-0.5 font-mono text-[0.9em]">pnpm exec doq init</code> to scaffold the files. The complete walkthrough is the
+          <a class="text-primary underline underline-offset-4" routerLink="/docs/getting-started">getting started guide</a>.
         </p>
       </section>
 
-      <section id="interactive-markdown" class="mx-auto w-[min(100%-2rem,70rem)] border-t border-border py-14 sm:py-20" aria-labelledby="interactive-title">
-        <h2 id="interactive-title" class="text-[clamp(1.8rem,4vw,2.6rem)] leading-tight">Interactive components in Markdown</h2>
-        <p class="mt-4 mb-8 max-w-3xl text-muted-foreground">
-          Put a line containing only <code class="rounded bg-muted px-1.5 py-0.5 font-mono text-[0.9em]">::demo[id]</code> where a live Angular component belongs.
-          Directives inside code fences, lists and quotes stay literal text, an unknown id shows a short notice instead of breaking the page,
-          and headings, the table of contents and search keep working around every component.
-          The component is yours: you register it, Doqs only places it. Register it as a playground instead and readers can also change its inputs, watch its outputs, resize and expand the preview, and copy usage code.
-        </p>
-        <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <volt-card>
-            <volt-card-header>
-              <volt-card-title><h3 class="text-lg">Markdown</h3></volt-card-title>
-              <volt-card-description>What you write in <span class="font-mono">src/content/docs</span></volt-card-description>
-            </volt-card-header>
-            <volt-card-content>
-              <pre class="m-0 overflow-x-auto rounded-lg border border-border bg-muted p-4 font-mono text-[0.82rem] leading-relaxed" tabindex="0"><code>{{ markdownCode }}</code></pre>
-            </volt-card-content>
-          </volt-card>
-          <volt-card>
-            <volt-card-header>
-              <volt-card-title><h3 class="text-lg">Rendered</h3></volt-card-title>
-              <volt-card-description>
-                A real Angular component, <span class="font-mono">::demo[enter-animation]</span>, animated with Angular Movement
-              </volt-card-description>
-            </volt-card-header>
-            <volt-card-content>
-              <app-enter-demo />
-            </volt-card-content>
-          </volt-card>
+      <section class="mx-auto w-[min(100%-2rem,70rem)] border-t border-border py-14 sm:py-20" aria-labelledby="proof-title">
+        <p class="m-0 font-mono text-xs tracking-wider text-primary uppercase">In use</p>
+        <h2 id="proof-title" class="mt-2 text-[clamp(1.8rem,4vw,2.6rem)] leading-tight">Built with Doqs, checked against real sites</h2>
+        <div class="mt-8 grid gap-8 md:grid-cols-2">
+          <div>
+            <h3 class="text-lg">You are looking at it</h3>
+            <p class="mt-2 text-muted-foreground">
+              The documentation of this site is a Doqs consumer: Markdown files, the Doqs sidebar, table of contents and Pagefind search, Angular demos and playgrounds,
+              generated API pages, all prerendered and loaded as a lazy route.
+            </p>
+            <a class="mt-3 inline-flex items-center gap-1.5 font-medium text-primary underline-offset-4 hover:underline" routerLink="/docs">Open the documentation <lmn-arrow-right [size]="14" /></a>
+          </div>
+          <div>
+            <h3 class="text-lg">Verified on real documentation sites</h3>
+            <p class="mt-2 text-muted-foreground">
+              The repository’s adoption checks migrate disposable copies of the Angular Movement and Volt UI documentation sites onto Doqs, keep their URLs,
+              build them from the packed tarball and run them in a browser. Each capability is classified as replaced, host-owned or blocked.
+            </p>
+            <a class="mt-3 inline-flex items-center gap-1.5 font-medium text-primary underline-offset-4 hover:underline" [href]="links.parity" rel="noopener">Read the parity report <lmn-arrow-right [size]="14" /></a>
+          </div>
+        </div>
+      </section>
+
+      <section class="mx-auto w-[min(100%-2rem,70rem)] pb-16 sm:pb-24" aria-labelledby="cta-title">
+        <div class="cta-band rounded-2xl border border-border px-6 py-10 text-center sm:px-12 sm:py-14">
+          <h2 id="cta-title" class="mx-auto max-w-2xl text-[clamp(1.8rem,4vw,2.6rem)] leading-tight text-balance">Put your documentation where your components already are.</h2>
+          <p class="mt-4 mb-0 flex flex-wrap justify-center gap-3">
+            <a voltButton size="lg" routerLink="/docs/getting-started" moveWhileHover="lift" moveWhileTap="press">Get started <lmn-arrow-right [size]="16" /></a>
+            <a voltButton size="lg" variant="outline" [href]="links.github" rel="noopener" moveWhileHover="lift" moveWhileTap="press">View on GitHub</a>
+          </p>
         </div>
       </section>
     </main>
@@ -328,9 +290,10 @@ The text after a demo is still ordinary, searchable Markdown.`;
 export default class HomePage {
   protected readonly links = siteLinks;
   protected readonly installCommand = installCommand;
-  protected readonly features = features;
+  protected readonly capabilities = capabilities;
   protected readonly steps = steps;
   protected readonly examples = examples;
-  protected readonly markdownCode = markdownCode;
-  protected readonly anatomy = ['Sidebar', 'Markdown page', 'On this page'] as const;
+  protected readonly demoDirective = demoDirective;
+  protected readonly sourceDirective = sourceDirective;
+  protected readonly apiCommand = apiCommand;
 }
