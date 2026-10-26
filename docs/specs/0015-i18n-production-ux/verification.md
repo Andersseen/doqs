@@ -89,19 +89,29 @@ on CI), which is why the new maxima carry 5% headroom above the CI-measured base
 
 ## Remaining limitations
 
-**Not verified by any test on this branch.** AC-007 through AC-010 are implemented but unproven. No
-Playwright, pytest, contract, determinism, compatibility, performance, packed-tarball or consumer check
-was run, and no showcase, official-site page or localized Markdown fixture was added. In particular:
+**Verified by CI on the pull request, not just locally.** Run
+[40290479686](https://github.com/Andersseen/doqs/actions/runs/40290479686) at commit `7a0e101` reports
+**12/12 jobs `success`**: Playwright E2E, Playwright cross-browser (Firefox, WebKit), Python contract
+tests, MVP and 0.1 acceptance harness, Angular 21 and 22 compatibility, deterministic builds, content
+scaling budget, production builds and package (pack, `verify:package`, `verify:public-api`, `perf:check`),
+unit and component tests, Node tooling on Windows, and static checks. An earlier statement in this file
+that no Playwright, pytest, contract, determinism, compatibility or performance check had been run is
+superseded by that run.
 
-- The sticky TOC has **no geometry test**. Per the brief, a `position: sticky` declaration is not evidence;
-  AC-009 needs a real browser asserting the rail's bounding box as `scrollY` grows. `e2e/toc.spec.ts` still
-  carries its 0.11 comment that the TOC is not sticky and still uses DOM clicks in the history tests, so
-  that suite is now **stale and expected to fail** against the new layout. It was not updated.
+**Still not verified by any test.** In particular:
+
+- AC-009 (sticky TOC geometry) is proven only indirectly. `e2e/toc.spec.ts` passes unchanged against the
+  new layout — the earlier claim here that it was stale and expected to fail was wrong — and MVP M16
+  exercises TOC clicking and the scroll-spy in a real browser, but no test yet asserts the rail's bounding
+  box as `scrollY` grows, which is what the brief asks for. I measured that by hand instead: headerBottom
+  67, tocTop/sidebarTop 99 at rest and 67 while scrolled at 1440x900.
 - The SSR 404 sets `RESPONSE_INIT.status` but **whether Analog propagates that status** in its dev server
   and production SSR server was not measured. If Analog drops it, this is an upstream limitation to report,
   not a Doqs fix.
-- Locale-scoped search is wired end to end but **no index was built or queried**, and Pagefind support for
-  `es`, `uk` and `ar` was read from typings rather than confirmed against generated indexes.
+- Locale-scoped search is wired end to end but **no localized index was built or queried**, and Pagefind
+  support for `es`, `uk` and `ar` was read from typings rather than confirmed against generated indexes.
+- No showcase, official-site page or localized Markdown fixture was added, so no localized page has ever
+  been rendered end to end: the i18n spine is covered by unit tests and by unlocalized integration only.
 
 **Deliberately not implemented** (see Non-goals in `spec.md`): the `@doqs/analog/etyma` secondary entry
 point and its optional peer, an alternative-provider adapter fixture, RTL and localized content fixtures,
@@ -111,14 +121,36 @@ doctor check for AM-01, the pre-hydration event-replay investigation (AM-02), th
 write-up (AM-07), the version bump to 0.12.0, changelog and README updates, and all four external
 consumer regressions (Volt UI, Angular Movement, Quartz, packed matrix).
 
-**Known consequences to resolve before this is mergeable:**
+**Known consequences still open:**
 
-1. `pnpm verify:public-api` will report the new exports and the changed `doqRoutes`,
-   `DoqSearchService.search` and error-wording declarations. The report and baseline need
-   `pnpm public-api:update` plus a stability-tier entry for each new name; neither was run.
-2. The playground component still renders English literals. It reads chrome from its own template rather
+1. The playground component still renders English literals. It reads chrome from its own template rather
    than from `DoqI18n`, so playground strings are **not** localized despite being inventoried in
-   `DOQ_DEFAULT_MESSAGES`.
-3. `perf-budgets.json` was not re-measured against the new grid layout.
-4. `sdd:check`, `format:check`, `docs:check`, `api:check` and `content:check` were not run after the final
-   edit, so the branch is not yet gate-clean.
+   `DOQ_DEFAULT_MESSAGES`. This is the largest remaining gap between what the message catalog implies and
+   what a localized site actually shows.
+2. The version is still `0.11.0`; `packages/doq/CHANGELOG.md` and `README.md` have no 0.12 entry, and the
+   official site has no page documenting `i18n`, the adapter contract or `--host-docs-sticky-offset`.
+3. `docs:check`, `api:check` and `content:check` were not run separately in this session; `format:check`,
+   `typecheck:scripts` and `sdd:check` are confirmed green by the CI static-checks job.
+
+**Resolved while fixing CI** (each was a real defect, recorded here so the causes are not lost):
+
+- `verify:public-api` failed because the 0.12 work had changed the _text_ of existing declarations, which
+  the 0.7 baseline comparison treats as a break even when additive. `normalizeDoqPaths` and `doqRoutes`
+  keep their 0.7 signatures (the locale-aware resolver is the new `normalizeDoqPathsFull`),
+  `DoqDocsComponent` regained `copy`/`version`/`versions`/`versionFilter` and `document` its exact 0.11
+  shape, `DoqIndexComponent` regained `copy`, and the new surface was recorded with `public-api:update`
+  plus a stability tier per name: PASS, 228 exports, compatible with 0.7.0.
+- `perf:check` failed on eight budgets; raised with the measured evidence in the table above.
+- The official site's production build failed with NG0201 because `DoqI18n` was `providedIn: 'root'` while
+  the site provides `DOQ_CONFIG` in its lazy `/docs` route — a documented consumer pattern. `DoqI18n` is
+  now provided by the two documentation views; COMP-143 is the regression test.
+- CONTRACT-080's 60-word floor counted the TOC's own link text while the rail lived inside the indexed
+  article; recalibrated to 40 words of body text, with the reason at the assertion.
+- M16 and one E2E case failed on the new layout: the rails stuck 1rem from the viewport top and slid under
+  the hosts' sticky headers, so the first TOC link was covered and the harness click hit the header
+  instead (fixed with `--host-docs-sticky-offset`, site 5rem and Showcase A 4.2rem); the scroll-spy
+  overrode a fragment the reader had just followed whenever the last section was too short to reach the
+  top of the viewport (fixed by pinning the followed heading while it is on screen); and the harness
+  fixture needed tail height below its headings, which the old static TOC used to supply.
+- `revealActiveTocLink` threw `ReferenceError: CSS is not defined` under jsdom once the pin made it run
+  outside the observer; it now matches by decoded hash instead of a `CSS.escape`d selector.
