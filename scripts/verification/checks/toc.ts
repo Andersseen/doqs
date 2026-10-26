@@ -26,15 +26,26 @@ export async function toc(page: Page, app: Showcase) {
   assert.ok(anchors.headings.some((x) => x.tag === 'H3'));
   const link = await page.evaluate("document.querySelector('.doq-toc a')?.getAttribute('href')");
   assert.ok(link);
+  const linkId = decodeURIComponent(new URL(link, 'http://localhost').hash.slice(1));
+  const initialTop = await page.evaluate<number>(
+    `document.getElementById(${JSON.stringify(linkId)})?.getBoundingClientRect().top ?? -1`,
+  );
   await page.click('.doq-toc a');
   await waitFor(
     async () => await page.evaluate(`location.hash===${JSON.stringify(new URL(link, 'http://localhost').hash)}`),
     'TOC fragment update',
   );
-  const target = await page.evaluate(
+  await delay(300);
+  const target = await page.evaluate<{ top: number; scroll: number; id: string }>(
     '(()=>{const e=document.getElementById(decodeURIComponent(location.hash.slice(1)));return{top:e?.getBoundingClientRect().top,scroll:scrollY,id:e?.id}})()',
   );
-  assert.ok(target.id && target.scroll > 0, 'TOC click should scroll to target');
+  // A short page whose first heading already sits near the top has nothing to scroll: the proof is then
+  // that the followed heading is revealed in the upper part of the viewport, not that scrollY moved.
+  const revealed = target.top >= 0 && target.top < 450;
+  assert.ok(
+    target.id && (target.scroll > 0 || (initialTop >= 0 && initialTop < 450 && revealed)),
+    `TOC click should scroll to target; state=${JSON.stringify({ initialTop, ...target })}`,
+  );
   await page.navigate(`http://127.0.0.1:${app.port}/docs/verification/toc-fixture`);
   await page.evaluate('window.scrollTo(0,0)');
   await waitFor(
