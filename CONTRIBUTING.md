@@ -72,6 +72,8 @@ PLAYWRIGHT_BROWSERS_PATH=0 pnpm exec playwright install firefox webkit   # add -
 pnpm test:e2e:browsers                                                    # or: pnpm test:e2e e2e/toc.spec.ts --project=webkit
 ```
 
+In CI the matrix is not part of every pull request (it alone took longer than the rest of the pipeline): `ci-extended.yml` runs it every Monday on `main`, on demand (Actions → CI extended → Run workflow) and on pull requests labelled `full-ci`. Add the label when a change touches engine-sensitive behavior.
+
 Adapt a test to an engine only for a real platform limit and say why in the test: Firefox and WebKit cannot grant `clipboard-read` (`expectClipboard` in `e2e/fixtures.ts` annotates the gap), Safari's default Tab skips links (`nextFocusKey`), engines word a legitimate 404 differently (`EXPECTED_404_NOISE`). Never delete a product assertion to turn an engine green.
 
 **Static integrity, determinism, compatibility and budgets (0.7).**

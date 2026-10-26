@@ -118,6 +118,55 @@ describe('UNIT-023 workflow permission and trust invariants', () => {
   });
 });
 
+describe('pull request CI time budget', () => {
+  const jobs = (workflow: string) => [...workflow.matchAll(/\n  ([a-z0-9-]+):\n    name:/g)].map((match) => match[1]!);
+
+  it('UNIT-177: bounds every CI job so a stalled step cannot hold a pull request past 30 minutes', async () => {
+    const ci = await read('.github/workflows/ci.yml');
+    for (const name of jobs(ci)) {
+      const minutes = Number(job(ci, name).match(/timeout-minutes: (\d+)/)?.[1]);
+      expect(minutes, name).toBeGreaterThan(0);
+      // A job that waits for `build` (at most 15 minutes) must still end inside the budget.
+      expect(minutes + (job(ci, name).includes('needs: build') ? 15 : 0), name).toBeLessThanOrEqual(35);
+    }
+  });
+
+  it('UNIT-178: installs browsers only through the cached, time-bounded action', async () => {
+    for (const file of ['.github/workflows/ci.yml', '.github/workflows/ci-extended.yml']) {
+      const workflow = await read(file);
+      expect(workflow, file).not.toMatch(/playwright install/);
+      expect(workflow, file).toContain('uses: ./.github/actions/playwright-browsers');
+    }
+    const action = await read('.github/actions/playwright-browsers/action.yml');
+    expect(action).toMatch(/timeout \d+ pnpm exec playwright install --with-deps/);
+    expect(action).toContain("PLAYWRIGHT_BROWSERS_PATH: '0'");
+    expect(action).toContain('actions/cache@');
+  });
+
+  it('UNIT-179: starts jobs that build their own package without waiting for the build job', async () => {
+    const ci = await read('.github/workflows/ci.yml');
+    for (const name of jobs(ci)) {
+      const text = job(ci, name);
+      if (text.includes('needs: build')) expect(text, name).toContain('name: builds');
+    }
+  });
+
+  it('UNIT-180: runs the Firefox/WebKit matrix weekly, on demand or by label, read-only and never as a release gate', async () => {
+    const ci = await read('.github/workflows/ci.yml');
+    expect(ci).not.toContain('test:e2e:browsers');
+    const extended = await read('.github/workflows/ci-extended.yml');
+    expect(extended).toMatch(/name: CI extended\n/);
+    expect(extended).toMatch(/schedule:\n\s+- cron: '[^']+'/);
+    expect(extended).toContain('workflow_dispatch:');
+    expect(extended).toContain("contains(github.event.pull_request.labels.*.name, 'full-ci')");
+    expect(extended).toContain('pnpm test:e2e:browsers');
+    expect(extended).toMatch(/permissions:\n\s+contents: read/);
+    expect(extended).not.toMatch(/id-token:\s*write|contents:\s*write|secrets\./);
+    expect(await releaseWorkflow()).not.toContain('CI extended');
+    expect(await deployWorkflow()).not.toContain('CI extended');
+  });
+});
+
 describe('UNIT-024 package publishing metadata', () => {
   it('is a public scoped package with provenance-ready repository metadata', async () => {
     const manifest = JSON.parse(await read('packages/doq/package.json'));
