@@ -122,3 +122,16 @@ def test_contract_034_no_secrets_in_generated_artifacts():
             text = path.read_text(errors="ignore")
             for pattern in SECRET_PATTERNS:
                 assert not re.search(pattern, text), f"{path.relative_to(SITE_DIST)} matches {pattern}"
+
+
+def test_contract_035_every_site_component_ships_compiled():
+    """CONTRACT-035: no client chunk carries a site component that was left for the JIT compiler.
+
+    Regression: with the client and SSR builds racing, lazy chunks such as the landing page shipped their raw
+    `@Component({selector: 'app-…'})` metadata. The browser then failed with "JIT compiler unavailable" and the page
+    never hydrated.
+    """
+    chunks = list((SITE_DIST / "assets").glob("*.js"))
+    assert chunks, "client bundle missing"
+    uncompiled = [path.name for path in chunks if re.search(r"selector:\s*[`'\"]app-", path.read_text(errors="ignore"))]
+    assert not uncompiled, f"site components left uncompiled in {uncompiled}"

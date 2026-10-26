@@ -28,6 +28,27 @@ function siteMetadata(): Plugin {
   };
 }
 
+/**
+ * Builds the client and SSR environments one after the other. Analog's Nitro plugin starts both at once with shared
+ * plugins, and the Angular plugin releases its compilation in `buildEnd`: when SSR finished first, the client was still
+ * transforming lazy chunks (the landing page among them), which then shipped uncompiled. The browser failed with
+ * "JIT compiler unavailable" and the prerendered page never hydrated, so nothing on it reacted, the theme switch included.
+ */
+function sequentialEnvironmentBuilds(): Plugin {
+  return {
+    name: 'doq-site-sequential-environment-builds',
+    buildApp(builder) {
+      const build = builder.build.bind(builder);
+      let queue: Promise<unknown> = Promise.resolve();
+      builder.build = (environment) => {
+        const run = queue.then(() => build(environment));
+        queue = run.catch(() => undefined);
+        return run;
+      };
+    },
+  };
+}
+
 export default defineConfig({
   build: { target: ['es2022'] },
   resolve: { mainFields: ['module'] },
@@ -43,5 +64,6 @@ export default defineConfig({
     doqDeterministicMarkdown(),
     tailwindcss(),
     siteMetadata(),
+    sequentialEnvironmentBuilds(),
   ],
 });

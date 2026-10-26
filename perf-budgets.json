@@ -102,9 +102,9 @@
     {
       "target": "site",
       "metric": "initialCssGzip",
-      "baseline": 17372,
-      "max": 18240,
-      "reason": "Stylesheet linked by the landing and the documentation (host Tailwind and Volt styles plus the Doqs core stylesheet). It was 11,160 B before the documentation was added. 0.9: the Doqs core stylesheet gained the playground styles (about 0.9 KB gzip). Official-site 1.0 readiness: the redesigned landing and the new /examples page add utility classes plus about 1 KB raw of site CSS (active-route indicator, hero glow, documentation preview window); measured 16,772 B before and 17,372 B after (+600 B gzip) on the same machine."
+      "baseline": 19004,
+      "max": 19955,
+      "reason": "Stylesheet linked by the landing and the documentation (host Tailwind and Volt styles plus the Doqs core stylesheet). It was 11,160 B before the documentation was added. 0.9: the Doqs core stylesheet gained the playground styles (about 0.9 KB gzip). Official-site 1.0 readiness: the redesigned landing and the new /examples page add utility classes plus about 1 KB raw of site CSS (active-route indicator, hero glow, documentation preview window); measured 16,772 B before and 17,372 B after (+600 B gzip) on the same machine. Spec 0017 (theme switch and landing redesign): the CSS-driven theme switch, the view-transition rules and the landing’s hero, card, step and call-to-action styles plus their utility classes; measured 17,584 B before and 19,004 B after (+1,420 B gzip) on the same machine."
     },
     {
       "target": "site",
