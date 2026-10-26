@@ -131,7 +131,7 @@ describe('pull request CI time budget', () => {
     }
   });
 
-  it('UNIT-178: installs browsers only through the cached, time-bounded action', async () => {
+  it('UNIT-178: installs browsers through the cached action without orphaning apt processes', async () => {
     for (const file of ['.github/workflows/ci.yml', '.github/workflows/ci-extended.yml']) {
       const workflow = await read(file);
       expect(workflow, file).not.toMatch(/playwright install/);
