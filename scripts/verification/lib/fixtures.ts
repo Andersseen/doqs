@@ -35,7 +35,8 @@ export async function createTocFixtures(): Promise<void> {
   // offset and the document height by the same amount.
   const tail = Array.from(
     { length: 6 },
-    (_, index) => `Trailing paragraph ${index + 1}. ${'This sentence adds scrolling space below the headings. '.repeat(8)}\n\n`,
+    (_, index) =>
+      `Trailing paragraph ${index + 1}. ${'This sentence adds scrolling space below the headings. '.repeat(8)}\n\n`,
   ).join('');
   await writeFile(
     join(tocFixtureDir, 'toc-fixture.md'),
