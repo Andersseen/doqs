@@ -222,6 +222,8 @@ test.describe('E2E-100 the official site documents Doqs with Doqs', () => {
       await page.goto(`${docs}/guides/rich-markdown`);
       if (dark !== (await page.locator('html').evaluate((node) => node.classList.contains('dark'))))
         await page.getByRole('button', { name: 'Dark theme' }).click();
+      // The switch reveals the new theme through a view transition, which applies `.dark` a frame after the click.
+      await expect(page.locator('html')).toHaveClass(dark ? /\bdark\b/ : /^(?!.*\bdark\b)/);
       const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
       expect(
         results.violations.map(

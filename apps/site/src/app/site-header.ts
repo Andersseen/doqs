@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, Directive, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Directive } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { injectDialogRef } from 'ng-primitives/dialog';
 import {
@@ -13,12 +13,10 @@ import {
 } from '@voltui/components';
 import { LmnBars3Icon } from 'lumen-icons/bars-3';
 import { LmnGithubIcon } from 'lumen-icons/github';
-import { LmnMoonIcon } from 'lumen-icons/moon';
 import { LmnPackageIcon } from 'lumen-icons/package';
-import { LmnSunIcon } from 'lumen-icons/sun';
 import { LmnXMarkIcon } from 'lumen-icons/x-mark';
 import { navItems, siteLinks } from '../lib/site-config';
-import { ThemeController } from './theme';
+import { ThemeToggle } from './theme-toggle';
 
 /** Closes the surrounding Volt drawer when a link inside it is followed; the link itself navigates natively. */
 @Directive({ selector: '[appCloseDrawer]', host: { '(click)': 'drawer.close()' } })
@@ -40,8 +38,7 @@ class CloseDrawer {
     LmnBars3Icon,
     LmnGithubIcon,
     LmnPackageIcon,
-    LmnMoonIcon,
-    LmnSunIcon,
+    ThemeToggle,
     LmnXMarkIcon,
     CloseDrawer,
     RouterLink,
@@ -49,7 +46,7 @@ class CloseDrawer {
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <header class="sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur">
+    <header class="site-header sticky top-0 z-30 border-b border-border/70 bg-background/75 backdrop-blur-xl backdrop-saturate-150">
       <div class="mx-auto flex min-h-16 w-[min(100%-2rem,70rem)] items-center justify-between gap-4">
         <a
           class="inline-flex items-baseline gap-0.5 rounded-md font-serif text-2xl leading-none font-bold tracking-tighter text-foreground no-underline"
@@ -60,12 +57,13 @@ class CloseDrawer {
         </a>
 
         <nav class="hidden items-center gap-1 md:flex" aria-label="Main">
+          <span class="nav-pill">
           @for (link of sections; track link.path) {
             <a
               voltButton
               variant="ghost"
               size="sm"
-              class="nav-link"
+              class="nav-link rounded-full"
               [routerLink]="link.path"
               routerLinkActive="is-active"
               ariaCurrentWhenActive="page"
@@ -73,7 +71,8 @@ class CloseDrawer {
               >{{ link.label }}</a
             >
           }
-          <volt-separator orientation="vertical" class="mx-1 h-5" />
+          </span>
+          <volt-separator orientation="vertical" class="mx-2 h-5" />
           <a voltButton variant="ghost" size="sm" [href]="links.github" rel="noopener">
             <lmn-github [size]="16" /> GitHub
           </a>
@@ -83,18 +82,7 @@ class CloseDrawer {
         </nav>
 
         <div class="flex items-center gap-1">
-          <button
-            voltButton
-            variant="ghost"
-            size="icon"
-            type="button"
-            aria-label="Dark theme"
-            [attr.aria-pressed]="theme.dark()"
-            (click)="theme.toggle()"
-          >
-            <lmn-moon class="dark:hidden" [size]="20" />
-            <lmn-sun class="hidden dark:inline-flex" [size]="20" />
-          </button>
+          <app-theme-toggle />
           <button
             voltButton
             variant="outline"
@@ -151,6 +139,5 @@ class CloseDrawer {
 })
 export class SiteHeader {
   protected readonly links = siteLinks;
-  protected readonly theme = inject(ThemeController);
   protected readonly sections = navItems;
 }

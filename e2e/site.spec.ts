@@ -82,6 +82,34 @@ test.describe('E2E-030 official website: landing', () => {
   });
 });
 
+test.describe('E2E-035 official website: theme switch', () => {
+  test('shows one icon per theme, flips Volt’s dark class, and keeps the choice across a reload', async ({ page }) => {
+    await page.emulateMedia({ colorScheme: 'light' });
+    await page.goto(apps.site.url);
+    await page.waitForLoadState('networkidle');
+    const toggle = page.getByRole('button', { name: 'Dark theme' });
+    const sun = toggle.locator('.theme-toggle-sun');
+    const moon = toggle.locator('.theme-toggle-moon');
+    // Regression: Lumen icons set `display` inline, so a `hidden` class on the icon itself left both visible.
+    await expect(sun).toHaveCSS('opacity', '1');
+    await expect(moon).toHaveCSS('opacity', '0');
+    await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+
+    await toggle.click();
+    await expect(page.locator('html')).toHaveClass(/\bdark\b/);
+    await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    await expect(moon).toHaveCSS('opacity', '1');
+    await expect(sun).toHaveCSS('opacity', '0');
+
+    await page.reload();
+    await expect(page.locator('html')).toHaveClass(/\bdark\b/);
+    await expect(moon).toHaveCSS('opacity', '1');
+    await toggle.focus();
+    await page.keyboard.press('Enter');
+    await expect(page.locator('html')).not.toHaveClass(/\bdark\b/);
+  });
+});
+
 test.describe('E2E-031 official website: navigation', () => {
   test('SITE-004/005/NAV-07: the navbar holds real routes with Docs last, and no homepage anchors', async ({
     page,
@@ -288,6 +316,7 @@ test.describe('E2E-033 official website: theme, layout and accessibility', () =>
     await expect(page.locator('html')).toHaveClass(/dark/);
     const dark = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
     await page.getByRole('button', { name: 'Dark theme' }).click();
+    await expect(page.locator('html')).not.toHaveClass(/dark/);
     expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).not.toBe(dark);
   });
 
