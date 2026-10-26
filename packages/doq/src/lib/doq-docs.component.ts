@@ -108,6 +108,9 @@ export class DoqDocsComponent {
   readonly activeHeading = signal('');
   /** The heading the reader explicitly followed by fragment; stays lit while it is still on screen. */
   private pinnedHeading?: string;
+  /** True while the scroll that brought the pinned heading into view is still running (CSS `scroll-behavior: smooth`). */
+  private pinSettling = false;
+  private pinSettleCleanup?: () => void;
   readonly mobileNavigationOpen = signal(false);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -183,7 +186,7 @@ export class DoqDocsComponent {
     const onPopstate = () => { this.traversing = true; };
     view.addEventListener('scroll', onScroll, { passive: true });
     view.addEventListener('popstate', onPopstate);
-    inject(DestroyRef).onDestroy(() => { view.removeEventListener('scroll', onScroll); view.removeEventListener('popstate', onPopstate); });
+    inject(DestroyRef).onDestroy(() => { this.endPinSettling(); view.removeEventListener('scroll', onScroll); view.removeEventListener('popstate', onPopstate); });
   })();
   readonly navigation = computed(() => this.documents.map(document => ({ ...document, href: this.localize(document.routePath) })));
   readonly navigationTree = computed(() => {
@@ -299,6 +302,7 @@ export class DoqDocsComponent {
     const doc = this.document();
     this.activeHeading.set('');
     this.pinnedHeading = undefined;
+    this.endPinSettling();
     this.rendered.set(false);
     onCleanup(() => this.disconnectHeadingObserver());
     if (!doc || !isPlatformBrowser(this.platformId)) return;
@@ -423,6 +427,7 @@ export class DoqDocsComponent {
     if (target && this.headings().some(heading => heading.id === target.id)) {
       this.activeHeading.set(target.id);
       this.pinnedHeading = target.id;
+      this.beginPinSettling();
       this.revealActiveTocLink(this.hostElement.querySelector<HTMLElement>('.doq-root') ?? this.hostElement, target.id);
     }
     if (!focusTarget) return;
@@ -479,7 +484,7 @@ export class DoqDocsComponent {
       this.enhancementObserver = new IntersectionObserver(entries => {
         const visible = entries.filter(entry => entry.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
         if (visible?.target instanceof HTMLElement) {
-          if (this.pinnedHeading && this.pinnedStillVisible()) return;
+          if (this.pinnedHeading && (this.pinSettling || this.pinnedStillVisible())) return;
           this.pinnedHeading = undefined;
           this.activeHeading.set(visible.target.id);
           this.revealActiveTocLink(root, visible.target.id);
@@ -514,6 +519,26 @@ export class DoqDocsComponent {
     if (this.tocResizeHandler) this.documentRef.defaultView?.removeEventListener('resize', this.tocResizeHandler);
     this.tocResizeHandler = sync;
     this.documentRef.defaultView?.addEventListener('resize', sync, { passive: true });
+  }
+  /**
+   * With smooth scrolling the followed heading is still off screen while the page travels towards it, and the
+   * scroll-spy would read that as "the pinned heading left" and release the pin. The pin is therefore held until the
+   * scroll ends (`scrollend`, with a timer for engines that do not send it), and only then is its visibility checked.
+   */
+  private beginPinSettling(): void {
+    this.endPinSettling();
+    const view = this.documentRef.defaultView;
+    if (!view) return;
+    this.pinSettling = true;
+    const done = () => this.endPinSettling();
+    const timer = setTimeout(done, 1500);
+    view.addEventListener('scrollend', done, { once: true });
+    this.pinSettleCleanup = () => { clearTimeout(timer); view.removeEventListener('scrollend', done); };
+  }
+  private endPinSettling(): void {
+    this.pinSettling = false;
+    this.pinSettleCleanup?.();
+    this.pinSettleCleanup = undefined;
   }
   /** True while the heading the reader followed is still on screen, so the scroll-spy must not override it. */
   private pinnedStillVisible(): boolean {

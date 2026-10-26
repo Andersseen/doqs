@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-label="Doqs — documentation that lives in your Angular app">
+  <rect width="1200" height="630" fill="#fdf8f4"/>
+  <rect x="0" y="0" width="1200" height="630" fill="url(#g)"/>
+  <defs><radialGradient id="g" cx="0.15" cy="0" r="0.8"><stop offset="0" stop-color="#c2370f" stop-opacity="0.16"/><stop offset="1" stop-color="#c2370f" stop-opacity="0"/></radialGradient></defs>
+  <g font-family="Georgia, 'Times New Roman', serif" fill="#2a120b">
+    <text x="80" y="150" font-size="64" font-weight="700" letter-spacing="-2">doqs</text>
+    <circle cx="212" cy="140" r="9" fill="#c2370f"/>
+    <text x="80" y="300" font-size="76" font-weight="700" letter-spacing="-2">Your documentation,</text>
+    <text x="80" y="390" font-size="76" font-weight="700" letter-spacing="-2">inside your Angular app.</text>
+  </g>
+  <g font-family="ui-monospace, Menlo, Consolas, monospace" fill="#7a5a50" font-size="30">
+    <text x="80" y="480">Markdown · Angular components · SSR/SSG · Pagefind search</text>
+    <text x="80" y="560" fill="#c2370f" font-size="28">@doqs/analog</text>
+  </g>
+</svg>

@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+- **Table-of-contents highlight during smooth scrolling.** Following a fragment (TOC link, search result, deep link) pins the followed heading as active, but the pin was released while the page was still scrolling towards it when the host sets `scroll-behavior: smooth`, so the previous section stayed highlighted (`/docs/guides/rich-markdown#rules` lit "Titled code"). The pin is now held until the scroll ends (`scrollend`, with a 1.5 s fallback for engines without it) and only then checked against the viewport. No export, option, route or token changed.
+
 ## 0.11.0
 
 Real-world adoption and 1.0 contract hardening. Additive: no exported type, function, configuration key, frontmatter key, route or `--host-docs-*` token was removed or changed. The release is driven by two real adoption proofs (Angular Movement and Volt UI, built from the packed package) and fixes the generic blockers they exposed.

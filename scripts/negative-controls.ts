@@ -153,7 +153,7 @@ const controls: Control[] = [
       await libraryCopy(workspace);
       await mutate(
         resolve(workspace, 'packages/doq/src/lib/doq-docs.component.ts'),
-        '[attr.aria-label]="copy.label" (keydown.escape)',
+        '[attr.aria-label]="navLabel()" (keydown.escape)',
         '(keydown.escape)',
       );
       return sh(

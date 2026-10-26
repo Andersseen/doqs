@@ -65,7 +65,7 @@ def test_contract_030_homepage_is_prerendered_with_content_and_landmarks(site_of
     html, page = _page(site_official)
     assert page.h1 == 1
     assert page.landmarks >= {"main", "header", "footer", "nav"}
-    assert "Documentation that belongs in your app." in html
+    assert "Your documentation, inside your Angular app." in html
     assert "pnpm add @doqs/analog" in html
     assert "<app-root" in html and "ng-server-context" in html, "page was not server-rendered"
     assert (SITE_DIST / "favicon.svg").exists()

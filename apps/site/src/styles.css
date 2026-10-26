@@ -58,3 +58,66 @@
   --host-docs-sticky-offset: 5rem;
   --host-docs-scroll-offset: 5rem;
 }
+
+/* Global navigation: the current route gets a visible indicator in both themes (the link also carries aria-current="page"). */
+.nav-link {
+  position: relative;
+}
+.nav-link.is-active {
+  color: var(--foreground);
+  background-color: var(--muted);
+}
+@media (min-width: 48rem) {
+  .nav-link.is-active::after {
+    content: '';
+    position: absolute;
+    inset-inline: 0.75rem;
+    bottom: -0.55rem;
+    height: 2px;
+    border-radius: 2px;
+    background-color: var(--primary);
+  }
+}
+
+/* Soft accent glow behind the hero; token-based so it follows light and dark. */
+.hero-glow {
+  background: radial-gradient(ellipse 60% 70% at 15% 0%, color-mix(in oklab, var(--primary) 14%, transparent), transparent 70%);
+}
+.cta-band {
+  background:
+    radial-gradient(ellipse 70% 120% at 50% 0%, color-mix(in oklab, var(--primary) 12%, transparent), transparent 70%),
+    var(--surface, var(--muted));
+}
+
+/* The landing's documentation preview: a window around a few real links and a real component. */
+.preview {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 0.9rem;
+  background: var(--surface, var(--background));
+  box-shadow: 0 1px 2px color-mix(in oklab, var(--foreground) 6%, transparent), 0 24px 48px -24px color-mix(in oklab, var(--foreground) 22%, transparent);
+}
+.preview-chrome {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem 0.9rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--muted);
+}
+.preview-chrome > span {
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 999px;
+  background: var(--border);
+}
+.preview-current {
+  background: color-mix(in oklab, var(--primary) 12%, transparent);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+/* Volt renders the drawer overlay as a fixed layer with no z-index, which leaves the sticky site header painted over it. */
+[voltdraweroverlay] {
+  z-index: 60;
+}
