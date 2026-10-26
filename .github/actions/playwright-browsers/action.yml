@@ -1,7 +1,7 @@
 name: Playwright browsers
 description: >-
   Installs Playwright browsers inside node_modules (PLAYWRIGHT_BROWSERS_PATH=0), restoring the downloads from the Actions cache
-  and waiting for the dpkg lock before installing system dependencies.
+  without running apt on GitHub-hosted Ubuntu runners.
 inputs:
   browsers:
     description: Space-separated Playwright browser names, e.g. "chromium" or "firefox webkit".
@@ -21,25 +21,11 @@ runs:
       with:
         path: ${{ steps.version.outputs.path }}
         key: playwright-${{ runner.os }}-${{ steps.version.outputs.version }}-${{ inputs.browsers }}
-    # Wait for any apt work before Playwright installs dependencies; remove the runner marker that triggers a slow man-db rebuild.
-    - if: runner.os == 'Linux'
-      shell: bash
-      run: |
-        for attempt in {1..60}; do
-          if ! sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; then
-            sudo rm -f /var/lib/man-db/auto-update
-            exit 0
-          fi
-          echo "Waiting for the runner's apt process to release dpkg lock ($attempt/60)"
-          sleep 5
-        done
-        echo "The runner's apt process did not release dpkg lock within 5 minutes" >&2
-        exit 1
-    # Playwright starts apt-get as a child. A timeout kills the parent but leaves apt-get holding dpkg's lock, so install once
-    # and let the job timeout bound it instead of retrying an orphaned installation.
+    # GitHub-hosted Ubuntu runners already include Playwright's required system libraries. Avoid --with-deps: apt may be locked
+    # during runner startup, and its optional font/Xvfb packages can stall cold CI runs.
     - shell: bash
       env:
         PLAYWRIGHT_BROWSERS_PATH: '0'
         BROWSERS: ${{ inputs.browsers }}
       run: |
-        pnpm exec playwright install --with-deps $BROWSERS
+        pnpm exec playwright install $BROWSERS
