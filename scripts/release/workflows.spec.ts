@@ -138,7 +138,7 @@ describe('pull request CI time budget', () => {
       expect(workflow, file).toContain('uses: ./.github/actions/playwright-browsers');
     }
     const action = await read('.github/actions/playwright-browsers/action.yml');
-    expect(action.match(/pnpm exec playwright install \\$BROWSERS/g)).toHaveLength(1);
+    expect(action.match(/pnpm exec playwright install \$BROWSERS/g)).toHaveLength(1);
     expect(action).not.toContain('playwright install --with-deps');
     expect(action).toContain("PLAYWRIGHT_BROWSERS_PATH: '0'");
     expect(action).toContain('actions/cache@');
