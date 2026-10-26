@@ -138,7 +138,10 @@ describe('pull request CI time budget', () => {
       expect(workflow, file).toContain('uses: ./.github/actions/playwright-browsers');
     }
     const action = await read('.github/actions/playwright-browsers/action.yml');
-    expect(action).toMatch(/timeout \d+ pnpm exec playwright install --with-deps/);
+    expect(action).toContain('sudo fuser /var/lib/dpkg/lock-frontend');
+    expect(action.match(/pnpm exec playwright install --with-deps/g)).toHaveLength(1);
+    expect(action).not.toMatch(/timeout \d+ pnpm exec playwright install --with-deps/);
+    expect(action).toContain('let the job timeout bound it');
     expect(action).toContain("PLAYWRIGHT_BROWSERS_PATH: '0'");
     expect(action).toContain('actions/cache@');
   });
