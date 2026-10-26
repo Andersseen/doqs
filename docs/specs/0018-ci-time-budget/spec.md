@@ -20,6 +20,8 @@ None. Only repository workflows and their tests change; the package, its contrac
 - `ci.yml`: `acceptance`, `determinism`, `compat` and `scale` start without `needs: build` (none of them downloads its artifact); every job timeout is lowered to what it needs (10–20 minutes).
 - The Firefox/WebKit matrix moves to a new `ci-extended.yml` workflow: weekly on `main` (Monday 04:17 UTC), on demand (`workflow_dispatch`) and on pull requests labelled `full-ci`.
 
+- The CDP harness (`scripts/verification/lib/chrome.ts`) cleans up a Chrome that failed to start. The first run of this change (run 40349223219) showed why: the runner's Chrome did not write `DevToolsActivePort` within 15 s, the harness reported `0 PASS / 1 FAIL`, and the spawned Chrome kept Node alive until the new 20-minute timeout cancelled the job.
+
 ## Non-goals
 
 - No change to what any test checks, and no test is skipped: the cross-browser suite runs unchanged, on a different trigger.
@@ -32,6 +34,7 @@ None. Only repository workflows and their tests change; the package, its contrac
 - **REQ-002** Browsers are installed only through the cached, time-bounded composite action.
 - **REQ-003** A `ci.yml` job waits for `build` only when it downloads the `builds` artifact.
 - **REQ-004** The Firefox/WebKit matrix runs weekly, on demand and on labelled pull requests, read-only, and is not a release or deploy gate.
+- **REQ-005** When the CDP harness cannot start Chrome, it fails within its startup timeout and exits instead of leaving Chrome running; a cold first launch gets up to 60 s.
 
 ## Acceptance cases
 
@@ -39,6 +42,7 @@ None. Only repository workflows and their tests change; the package, its contrac
 - **AC-002** [REQ-002] Neither CI workflow contains `playwright install`; both use `./.github/actions/playwright-browsers`, which wraps `playwright install --with-deps` in `timeout`, caches and keeps `PLAYWRIGHT_BROWSERS_PATH=0`.
 - **AC-003** [REQ-003] Every `ci.yml` job with `needs: build` downloads the artifact named `builds`.
 - **AC-004** [REQ-004] `ci.yml` no longer runs `test:e2e:browsers`; `ci-extended.yml` does, with a schedule, `workflow_dispatch`, the `full-ci` label condition and `contents: read`, and neither release nor deploy names it.
+- **AC-005** [REQ-005] A Chrome that never writes `DevToolsActivePort` is killed when startup times out; one that exits during startup is reported at once with its exit code.
 
 ## Public API impact
 

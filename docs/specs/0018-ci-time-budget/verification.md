@@ -10,6 +10,9 @@ Run in the cloud sandbox (Linux, Node 22.22.0, pnpm 10.18.3). Workflows cannot r
 | UNIT-178   | AC-002     | No raw `playwright install` in either workflow; the composite action caches, bounds with `timeout`, keeps `PLAYWRIGHT_BROWSERS_PATH=0`                     | PASS   |
 | UNIT-179   | AC-003     | Every job with `needs: build` downloads the `builds` artifact                                                                                              | PASS   |
 | UNIT-180   | AC-004     | The Firefox/WebKit matrix is only in `ci-extended.yml` (schedule, dispatch, `full-ci` label, read-only) and not a release/deploy gate                      | PASS   |
+| UNIT-181   | AC-005     | A fake Chrome that never writes `DevToolsActivePort` is no longer alive after `launchChrome` rejects                                                       | PASS   |
+| UNIT-182   | AC-005     | A fake Chrome that exits with 3 is reported as `Chrome exited during startup (3)` within 10 s                                                              | PASS   |
+| MANUAL-002 | AC-005     | Real Chromium 1243 via `CHROME_BIN`: launch (2.9 s), `Runtime.evaluate`, close, and the Node process exits 0                                               | PASS   |
 | MANUAL-001 | AC-002     | `PLAYWRIGHT_BROWSERS_PATH=0` stores browsers in `node_modules/.pnpm/playwright-core@1.64.1/node_modules/playwright-core/.local-browsers` (the cached path) | PASS   |
 
 ## Executed commands
@@ -19,6 +22,7 @@ pnpm install --frozen-lockfile                                                  
 pnpm exec vitest run -c vitest.unit.config.ts scripts/release/workflows.spec.ts # 15 passed
 # same file against the previous .github (ci.yml from main, no action, no ci-extended.yml): 4 failed (UNIT-177..180), 11 passed
 pnpm build:doq && pnpm test:unit                                                # 27 files, 555 passed
+pnpm exec vitest run -c vitest.unit.config.ts scripts/verification/lib/chrome.spec.ts  # 2 passed; 2 failed with chrome.ts/wait.ts from main
 pnpm format:check                                                               # all files use Prettier code style
 pnpm typecheck:scripts                                                          # exit 0
 pnpm agentyx:check                                                              # exit 0

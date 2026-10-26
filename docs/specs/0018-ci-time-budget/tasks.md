@@ -5,3 +5,4 @@
 - [x] T-003 [REQ-003, AC-003] Remove `needs: build` from `acceptance`, `determinism`, `compat` and `scale`.
 - [x] T-004 [REQ-004, AC-004] Move the Firefox/WebKit job to `ci-extended.yml` (weekly, manual, `full-ci` label) and document it.
 - [x] T-005 [REQ-001, REQ-002, REQ-003, REQ-004] Add UNIT-177..180 and confirm it fails against the previous workflow.
+- [x] T-006 [REQ-005, AC-005] Kill and clean up Chrome when harness startup fails, detect an early exit, wait up to 60 s for a cold start; add UNIT-181/182.
