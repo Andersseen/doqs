@@ -34,9 +34,7 @@ export async function toc(page: Page, app: Showcase) {
   const target = await page.evaluate(
     '(()=>{const e=document.getElementById(decodeURIComponent(location.hash.slice(1)));return{top:e?.getBoundingClientRect().top,scroll:scrollY,id:e?.id}})()',
   );
-  // The click must reveal the target at the top of the viewport. A zero scrollY is legitimate when the
-  // first heading already sits at the top of a short preamble, so accept "already revealed" as proof.
-  assert.ok(target.id && (target.scroll > 0 || target.top < 200), 'TOC click should scroll to target');
+  assert.ok(target.id && target.scroll > 0, 'TOC click should scroll to target');
   await page.navigate(`http://127.0.0.1:${app.port}/docs/verification/toc-fixture`);
   await page.evaluate('window.scrollTo(0,0)');
   await waitFor(

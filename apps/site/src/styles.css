@@ -54,5 +54,7 @@
   --host-docs-focus: var(--ring);
   --host-docs-code-background: var(--muted);
   --host-docs-code-foreground: var(--foreground);
+  /* The site header is sticky, so the documentation rails must stick below it instead of sliding under it. */
+  --host-docs-sticky-offset: 5rem;
   --host-docs-scroll-offset: 5rem;
 }

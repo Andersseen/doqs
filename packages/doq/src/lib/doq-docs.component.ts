@@ -106,6 +106,8 @@ export class DoqDocsComponent {
   readonly catalog = injectDoqCatalog(this.config);
   readonly versioned = !!normalizeDoqPaths(this.config).versioning;
   readonly activeHeading = signal('');
+  /** The heading the reader explicitly followed by fragment; stays lit while it is still on screen. */
+  private pinnedHeading?: string;
   readonly mobileNavigationOpen = signal(false);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -296,6 +298,7 @@ export class DoqDocsComponent {
   private readonly enhancementEffect = effect(onCleanup => {
     const doc = this.document();
     this.activeHeading.set('');
+    this.pinnedHeading = undefined;
     this.rendered.set(false);
     onCleanup(() => this.disconnectHeadingObserver());
     if (!doc || !isPlatformBrowser(this.platformId)) return;
@@ -414,9 +417,14 @@ export class DoqDocsComponent {
     }
     if (target) target.scrollIntoView?.({ block: 'start' });
     else if (focusTarget) view?.scrollTo(0, 0);
-    // Following a fragment (TOC link, search result, deep link) must highlight that heading at once;
-    // waiting for the scroll-spy observer leaves the previous heading lit until the scroll settles.
-    if (target && this.headings().some(heading => heading.id === target.id)) this.activeHeading.set(target.id);
+    // Following a fragment (TOC link, search result, deep link) must highlight that heading at once, and
+    // keep it highlighted while it is still on screen: the last section of a short page can never be
+    // scrolled to the top, so without the pin the reader would land on a section the TOC does not name.
+    if (target && this.headings().some(heading => heading.id === target.id)) {
+      this.activeHeading.set(target.id);
+      this.pinnedHeading = target.id;
+      this.revealActiveTocLink(this.hostElement.querySelector<HTMLElement>('.doq-root') ?? this.hostElement, target.id);
+    }
     if (!focusTarget) return;
     const focusable = target ?? this.hostElement.querySelector<HTMLElement>('.doq-doc-header h1');
     if (!focusable) return;
@@ -471,6 +479,8 @@ export class DoqDocsComponent {
       this.enhancementObserver = new IntersectionObserver(entries => {
         const visible = entries.filter(entry => entry.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
         if (visible?.target instanceof HTMLElement) {
+          if (this.pinnedHeading && this.pinnedStillVisible()) return;
+          this.pinnedHeading = undefined;
           this.activeHeading.set(visible.target.id);
           this.revealActiveTocLink(root, visible.target.id);
         }
@@ -505,13 +515,32 @@ export class DoqDocsComponent {
     this.tocResizeHandler = sync;
     this.documentRef.defaultView?.addEventListener('resize', sync, { passive: true });
   }
+  /** True while the heading the reader followed is still on screen, so the scroll-spy must not override it. */
+  private pinnedStillVisible(): boolean {
+    if (!this.pinnedHeading) return false;
+    const node = this.documentRef.getElementById(this.pinnedHeading);
+    if (!node) return false;
+    const box = node.getBoundingClientRect();
+    const viewport = this.documentRef.defaultView?.innerHeight ?? 0;
+    return box.top < viewport && box.bottom > 0;
+  }
   /** Keep the active link inside the rail's own scrollport, without moving the article or stealing focus. */
   private revealActiveTocLink(root: HTMLElement, id: string): void {
     const toc = root.querySelector<HTMLElement>('.doq-toc');
-    const link = toc?.querySelector<HTMLElement>(`a[href$="#${CSS.escape(id)}"]`);
-    if (!toc || !link || toc.scrollHeight <= toc.clientHeight + 1) return;
+    if (!toc) return;
+    // Matched by decoded hash rather than by a CSS selector: an id can contain characters a selector
+    // would need escaping for, and `CSS.escape` is not present in every environment (jsdom lacks it).
+    const link = Array.from(toc.querySelectorAll<HTMLAnchorElement>('a')).find(anchor => {
+      const raw = anchor.hash.slice(1);
+      try {
+        return decodeURIComponent(raw) === id;
+      } catch {
+        return raw === id;
+      }
+    });
+    if (!link || toc.scrollHeight <= toc.clientHeight + 1) return;
     const top = link.offsetTop - toc.clientHeight / 2 + link.clientHeight / 2;
-    toc.scrollTo({ top: Math.max(0, top), behavior: 'auto' });
+    toc.scrollTo?.({ top: Math.max(0, top), behavior: 'auto' });
   }
   /** A table wider than the column scrolls on its own (CSS), so it must be reachable by keyboard and have a name. */
   private syncScrollableTables(markdown: HTMLElement): void {
