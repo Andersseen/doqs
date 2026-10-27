@@ -3,11 +3,11 @@ import { DOCUMENT } from '@angular/common';
 import { Router } from '@angular/router';
 import { DOQ_CONFIG } from '@doqs/analog/config';
 import { createLatestGate, DoqSearchResult, normalizeDoqSearchConfig } from '@doqs/analog/config';
-import { DoqSearchService, DoqVersionNotIndexedError } from './doq-search.service';
+import { DoqLocaleNotIndexedError, DoqSearchService, DoqVersionNotIndexedError } from './doq-search.service';
 import { DoqI18n } from './doq-i18n';
 import { DoqVersion } from '@doqs/analog/config';
 
-type SearchStatus = 'idle' | 'loading' | 'ready' | 'empty' | 'unavailable' | 'unindexed';
+type SearchStatus = 'idle' | 'loading' | 'ready' | 'empty' | 'unavailable' | 'unindexed' | 'unindexedLocale' | 'invalidLocaleIndex';
 
 const DEBOUNCE_MS = 120;
 
@@ -88,6 +88,8 @@ export class DoqSearchComponent {
       }
       case 'empty': return this.i18n.t('search.empty', { query: this.query().trim() });
       case 'unindexed': return this.i18n.t('search.unindexed', { version: this.version()?.label ?? 'this version' });
+      case 'invalidLocaleIndex': return this.i18n.t('search.invalidLocaleIndex');
+      case 'unindexedLocale': return this.i18n.t('search.localeNotIndexed', { locale: this.locale() ?? this.i18n.locale() });
       case 'unavailable': return this.i18n.t('search.unavailable');
       default: return this.i18n.t('search.idle');
     }
@@ -187,7 +189,7 @@ export class DoqSearchComponent {
     } catch (error) {
       if (!this.gate.isCurrent(ticket)) return;
       this.results.set([]);
-      this.status.set(error instanceof DoqVersionNotIndexedError ? 'unindexed' : 'unavailable');
+      this.status.set(error instanceof DoqLocaleNotIndexedError ? error.reason === 'missing-metadata' ? 'invalidLocaleIndex' : 'unindexedLocale' : error instanceof DoqVersionNotIndexedError ? 'unindexed' : 'unavailable');
     }
   }
 

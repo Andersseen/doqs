@@ -24,3 +24,7 @@
 - [x] T-020 [REQ-010, AC-006] Update the component tests for the additive search argument and the broadened error wording, and re-run the unit, component and library-build gates.
 - [x] T-021 [REQ-001, REQ-010, AC-001, AC-006] Record the external findings that constrain the deferred work (Analog's `front-matter` peer, Etyma's route and head ownership, Pagefind's per-language splitting) in `research/external-findings.md`.
 - [x] T-022 [REQ-011, AC-011] Provide `DoqI18n` from the documentation views instead of the root injector, so a host that scopes `provideDoq()` to a lazy route (the official site's pattern) resolves it; add `test/components/lazy-provided-config.spec.ts` reproducing the NG0201 that broke the site's production build.
+- [x] T-023 [REQ-012, AC-012] Route remaining playground-owned text, validation feedback, copy states, expanded preview labels and live announcements through the existing message catalog; prove reactive locale changes in a component test.
+- [x] T-024 [REQ-013, AC-013] Fail closed when a localized search request uses a Pagefind index without locale metadata, preserve unlocalized legacy-index behavior, and cover both paths in the service test.
+- [x] T-025 [REQ-012, REQ-013, AC-012, AC-013] Run focused component and unit tests and record actual results here and in `verification.md`.
+- [x] T-026 [REQ-014, AC-014] Add explicit optional route ownership to `DoqI18nAdapter`, stop inferring it from locale count, and cover both explicit ownership and adapter-only defaults in a component test.

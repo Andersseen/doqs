@@ -1,7 +1,8 @@
 # 0015 research — verified external findings
 
-Every statement below was read from a shipped artifact or an installed package on 2026-10-25. Evidence
-paths are given so any claim can be re-checked. Nothing here is inferred from a README alone.
+The historical sections below record artifacts and installed packages inspected on 2026-10-25. Evidence
+paths are given so those claims can be re-checked. The 2026-10-27 recheck at the end supersedes the Etyma
+version and source-status claims where they differ; no current Etyma declaration is inferred from a README.
 
 This file is the **decision summary**. Three companion files in this directory carry the full traces, and
 where they go further than a section below, they are authoritative:
@@ -9,6 +10,15 @@ where they go further than a section below, they are authoritative:
 - [`etyma-public-api.md`](etyma-public-api.md) — complete Etyma 1.0.0 surface, declarations and peer analysis.
 - [`vite-front-matter-dev-server.md`](vite-front-matter-dev-server.md) — full AM-01 mechanism, upstream status and ranked remediations.
 - [`angular-replay-and-response-init.md`](angular-replay-and-response-init.md) — source-level trace of the event-replay contract and of `RESPONSE_INIT`.
+
+## Recheck on 2026-10-27
+
+The published-version detail in §4 is stale for a new integration. npm package listings currently surfaced
+`@etyma/angular` **0.1.0**, `@etyma/core` **0.1.0**, and `@etyma/analog` **0.2.0**. This differs from the 1.0.0
+tarballs captured on 2026-10-25. The GitHub API could not be reached in this environment, and the current
+published tarballs could not be fetched by the local package client, so the current declaration files, peer ranges,
+and route/head ownership contract remain **unverified**. Do not implement or claim an Etyma adapter from §4 alone;
+reinspect the current published tarballs and source when registry access is available.
 
 Two sections below were written before those traces finished and are deliberately conservative: §3 records
 that _this_ pass did not finish the replay trace (the companion file carries the source-level reading, which

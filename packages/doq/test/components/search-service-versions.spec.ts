@@ -16,7 +16,7 @@ export async function search(query, options) {
   return `data:text/javascript,${encodeURIComponent(source)}`;
 }
 
-describe('COMP-096 DoqSearchService version filter (SEARCH-02, SEARCH-04)', () => {
+describe('COMP-096 / COMP-144 DoqSearchService version and locale filters (SEARCH-02, SEARCH-04)', () => {
   const calls = () => (globalThis as { __pagefindCalls?: unknown[] }).__pagefindCalls ?? [];
 
   it('passes the version as a Pagefind filter, applied by Pagefind itself', async () => {
@@ -24,6 +24,12 @@ describe('COMP-096 DoqSearchService version filter (SEARCH-02, SEARCH-04)', () =
     const results = await new DoqSearchService().search('install', bundle, '/docs/v/1', '1');
     expect(calls().at(-1)).toEqual({ query: 'install', options: { filters: { doqsVersion: '1' } } });
     expect(results.map(result => result.url)).toEqual(['/docs/v/1/install']);
+  });
+
+  it('applies a locale filter before Pagefind ranks results', async () => {
+    const bundle = await fakeBundle({ doqsLocale: { en: 3, es: 2 } });
+    await new DoqSearchService().search('install', bundle, '/docs', undefined, 'es');
+    expect(calls().at(-1)).toEqual({ query: 'install', options: { filters: { doqsLocale: 'es' } } });
   });
 
   it('rejects with DoqVersionNotIndexedError when no page carries that version', async () => {
@@ -37,5 +43,13 @@ describe('COMP-096 DoqSearchService version filter (SEARCH-02, SEARCH-04)', () =
     const bundle = await fakeBundle({});
     await new DoqSearchService().search('install', bundle, '/docs');
     expect(calls().at(-1)).toEqual({ query: 'install', options: undefined });
+  });
+
+  it('fails closed for localized search when the index has no locale metadata, while legacy search remains available', async () => {
+    const legacy = await fakeBundle({});
+    await expect(new DoqSearchService().search('install', legacy, '/docs', undefined, 'es')).rejects.toMatchObject({ reason: 'missing-metadata' });
+    const otherLocale = await fakeBundle({ doqsLocale: { en: 1 } });
+    await expect(new DoqSearchService().search('install', otherLocale, '/docs', undefined, 'es')).rejects.toMatchObject({ reason: 'missing-locale' });
+    await expect(new DoqSearchService().search('install', legacy, '/docs')).resolves.toHaveLength(1);
   });
 });

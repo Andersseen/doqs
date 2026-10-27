@@ -44,15 +44,15 @@ return `fallback` for an unknown key, which is what makes a partial catalog degr
 
 `DoqI18n` never stores locale state. With an adapter it reads the adapter's signal; without one it
 derives the locale from the router URL through `toSignal(router.events)`, so the URL stays the single
-source of truth and server and client agree without a transfer key. `localize()` is identity when Doqs
-owns routing (catalog base paths already carry the prefix) and delegates to the adapter when the host
-does — which is how Etyma's `withLocalizedRoutes()` keeps ownership of prefixes without Doqs building a
-second locale router.
+source of truth and server and client agree without a transfer key. `hostOwnsRouting` reflects the
+adapter's explicit optional `ownsRouting` capability; adapter presence and Doqs locale count do not
+imply who owns route composition. `localize()` delegates URL composition to an adapter when present.
 
 **Search scoping is one more Pagefind filter.** Research showed a single bundle already splits into
 per-language sub-indexes from the detected page language, but the browser API merges across them, so the
-locale is passed as `doqsLocale` alongside `doqsVersion`. An index that carries no locale filter is
-searched unscoped rather than rejected, which keeps an index built before localization working.
+locale is passed as `doqsLocale` alongside `doqsVersion`. A localized request fails closed if the index
+has no locale metadata or does not include the requested locale; an unlocalized request stays compatible
+with legacy indexes.
 
 **Head ownership is explicit.** `setLocale()` and `setAlternates()` only ever touch elements Doqs created
 or attributes it recorded, and both are skipped when `adapter.ownsHead` is true — the flag
