@@ -41,12 +41,8 @@ export class DoqI18n {
   readonly i18n: DoqResolvedI18n | undefined = this.paths.i18n;
   /** True when the configuration publishes more than one locale. */
   readonly localized = !!this.i18n && this.i18n.locales.length > 1;
-  /**
-   * True when the host owns localized routing (Etyma's `withLocalizedRoutes()`), so Doqs routes stay
-   * unprefixed and every link is passed through the adapter's `localize`. With Doqs-owned routing the
-   * catalog base paths already carry the prefix and `localize` is the identity.
-   */
-  readonly hostOwnsRouting = !!this.adapter && !this.localized;
+  /** Host route ownership is explicit and independent of how many locales Doqs publishes. */
+  readonly hostOwnsRouting = this.adapter?.ownsRouting === true;
   private readonly copy = resolveDoqCopy(this.config);
 
   private readonly router = inject(Router);

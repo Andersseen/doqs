@@ -107,6 +107,10 @@ const config = provideButton({ size: 'md' });
 
 Source files are read as text from the configured `sourceRoots` only, never executed, never fetched. Nothing is added to the browser bundle, and projects that do not use it need no configuration. See the guides _Content authoring_ and _Content tooling_ in the [documentation](https://github.com/Andersseen/doqs/tree/main/apps/site/src/authoring/docs).
 
+## Localization (0.12 development)
+
+Configure independently authored Markdown directories for each locale with `DoqPaths.i18n`. The default locale keeps its existing URLs; other locales receive locale-prefixed routes. Provide a `DoqI18nAdapter` through `provideDoqI18n()` to translate Doqs-owned interface text and connect the host's active locale. Set `ownsRouting` when the host owns localized route composition; adapter presence alone does not imply ownership. Playground controls and their validation, copy, dialog and announcement text use the same `DOQ_DEFAULT_MESSAGES` catalog. Localized Pagefind requests require locale metadata in the generated index and fail closed when it is missing.
+
 ## Adopting it in an existing site (0.11)
 
 - Import configuration from `@doqs/analog/config` (`defineDoqConfig`, `provideDoq`, `doqPrerenderRoutes`, the types): it imports only `@angular/core`, so it also loads in a `vite.config.ts` or a script, where the main entry does not.

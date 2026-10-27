@@ -2,7 +2,7 @@ import { Component, EventEmitter, Input, OnDestroy, Output, booleanAttribute, in
 import { fireEvent, screen, waitFor, within } from '@testing-library/angular';
 import userEvent from '@testing-library/user-event';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DoqPlaygroundDefinition, formatDoqUsage } from '../../src/public-api';
+import { DoqI18nAdapter, DoqPlaygroundDefinition, formatDoqUsage, provideDoqI18n } from '../../src/public-api';
 import { FakeDoc } from './content-state';
 import { renderDocs } from './harness';
 
@@ -54,7 +54,7 @@ const definition: DoqPlaygroundDefinition = {
 };
 
 const page = (body: string): FakeDoc[] => [{ source: 'guide', body, attributes: { title: 'Guide', order: 1 } }, { source: 'other', body: '<p>Other body</p>', attributes: { title: 'Other', order: 2 } }];
-const open = (body: string, playgrounds: Record<string, DoqPlaygroundDefinition>) => renderDocs({ docs: page(body), config: { playgrounds }, url: '/docs/guide' });
+const open = (body: string, playgrounds: Record<string, DoqPlaygroundDefinition>, providers: Parameters<typeof renderDocs>[0]['providers'] = []) => renderDocs({ docs: page(body), config: { playgrounds }, url: '/docs/guide', providers });
 
 beforeAll(() => {
   // jsdom has no <dialog> behavior; model the native contract the component relies on.
@@ -189,6 +189,36 @@ describe('playground', () => {
     expect(await screen.findByRole('button', { name: 'Tiny' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Mobile' })).toBeNull();
     expect(within(screen.getByRole('group', { name: 'B' })).queryByRole('group', { name: 'Preview width' })).toBeNull();
+  });
+
+  it('COMP-069: translates playground chrome reactively and keeps consumer labels intact', async () => {
+    const locale = signal('en');
+    const direction = signal<'ltr' | 'rtl'>('ltr');
+    const spanish: Record<string, string> = {
+      'playground.reset': 'Restablecer',
+      'playground.expand': 'Ampliar',
+      'playground.inputs': 'Entradas',
+      'playground.events': 'Eventos',
+      'playground.clearEvents': 'Vaciar',
+      'playground.noEvents': 'Aún no hay eventos.',
+      'playground.resetAnnouncement': 'El entorno se restableció.',
+    };
+    const adapter: DoqI18nAdapter = {
+      locale: locale.asReadonly(),
+      direction: direction.asReadonly(),
+      translate: (key, fallback) => locale() === 'es' ? spanish[key] ?? fallback : fallback,
+      localize: path => path,
+    };
+    const user = userEvent.setup();
+    await open('<p>::playground[sig]</p>', { sig: definition }, [provideDoqI18n(adapter)]);
+    expect(screen.getByRole('button', { name: 'Reset' })).toBeTruthy();
+    expect(screen.getByRole('group', { name: 'Preview width' })).toBeTruthy();
+    locale.set('es');
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Restablecer' })).toBeTruthy());
+    expect(screen.getByRole('group', { name: 'Preview width' })).toBeTruthy();
+    expect(screen.getByText('Variant')).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Restablecer' }));
+    expect(screen.getByRole('status').textContent).toBe('El entorno se restableció.');
   });
 
   it('COMP-060: expands into a dialog keeping the same component instance and returns focus on close', async () => {

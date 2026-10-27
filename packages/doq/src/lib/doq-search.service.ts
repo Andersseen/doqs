@@ -9,6 +9,13 @@ interface PagefindModule {
 
 /** The index has no pages carrying the requested documentation version. */
 export class DoqVersionNotIndexedError extends Error {}
+/** A localized search request cannot be safely scoped because the Pagefind index has no locale metadata. */
+export class DoqLocaleNotIndexedError extends Error {
+  constructor(readonly locale: string, readonly reason: 'missing-metadata' | 'missing-locale') {
+    super(`Doq: localized Pagefind index ${reason === 'missing-metadata' ? 'has no locale metadata' : `does not contain locale "${locale}"`}.`);
+    this.name = 'DoqLocaleNotIndexedError';
+  }
+}
 
 const MAX_PAGES = 8;
 const MAX_ROWS = 12;
@@ -25,7 +32,8 @@ export class DoqSearchService {
    * Rejects when the index cannot be loaded; a later call retries. With `versionId` and/or `localeId` the
    * query is filtered by Pagefind itself, before ranking and truncation, so results never spill across a
    * version or a language; a version or locale that was never indexed rejects with
-   * DoqVersionNotIndexedError.
+   * DoqVersionNotIndexedError. A localized request also rejects with DoqLocaleNotIndexedError when its
+   * index has no locale filter, because searching all languages would leak unrelated results.
    */
   search(query: string, bundlePath: string, basePath: string, versionId?: string, localeId?: string): Promise<DoqSearchResult[]> {
     return this.load(bundlePath).then(async pagefind => {
@@ -35,16 +43,16 @@ export class DoqSearchService {
       const scoped = Object.keys(filters).length ? filters : undefined;
       if (scoped) {
         const known = await pagefind.filters?.();
-        // A locale is only enforced when the index actually carries locale filters; an index built
-        // before localization was enabled still has to answer, just unscoped by locale.
+        // Unlocalized callers omit localeId and can still use a legacy index. A localized caller must
+        // fail closed when the index has no locale dimension; otherwise Pagefind would mix languages.
         if (versionId !== undefined) {
           const versions = known?.[DOQ_VERSION_FILTER];
           if (!versions || !(versionId in versions)) throw new DoqVersionNotIndexedError(versionId);
         }
         if (localeId !== undefined) {
           const locales = known?.[DOQ_LOCALE_FILTER];
-          if (locales && !(localeId in locales)) throw new DoqVersionNotIndexedError(localeId);
-          else if (!locales) delete filters[DOQ_LOCALE_FILTER];
+          if (!locales) throw new DoqLocaleNotIndexedError(localeId, 'missing-metadata');
+          if (!(localeId in locales)) throw new DoqLocaleNotIndexedError(localeId, 'missing-locale');
         }
       }
       const { results } = await pagefind.search(query, scoped && Object.keys(scoped).length ? { filters: scoped } : undefined);

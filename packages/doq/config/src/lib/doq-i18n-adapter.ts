@@ -30,9 +30,9 @@ export interface DoqI18nAdapter {
   /**
    * The public URL of an in-app documentation path in `locale` (default: the active one).
    *
-   * Every link Doqs renders goes through this. A host that owns localized routing — Etyma's
-   * `withLocalizedRoutes()`, for example — returns the prefixed path here and Doqs never builds a
-   * competing locale router; a host that does not gets the identity function from Doqs's own routing.
+   * Doqs passes the target locale for language-switch links. Return the path unchanged when Doqs's
+   * catalog URL already contains its locale prefix; compose host-specific prefixes here when needed.
+   * `ownsRouting` reports whether the host owns that route composition.
    */
   localize(path: string, locale?: string): string;
   /**
@@ -40,6 +40,8 @@ export interface DoqI18nAdapter {
    * absent Doqs renders a plain link list instead of a control, so the URL stays the source of truth.
    */
   switchLocale?(locale: string): void | Promise<void>;
+  /** True when route prefixes and localized URL composition belong to the host, even with several Doqs content locales. */
+  readonly ownsRouting?: boolean;
   /**
    * True when the host already writes `<html lang>`, `<html dir>`, the canonical link and the
    * `hreflang` set — `provideEtymaAnalog()` does, by default. Doqs then leaves the document head
@@ -96,6 +98,8 @@ export const DOQ_DEFAULT_MESSAGES = {
   'search.resultMany': '{count} results',
   'search.empty': 'No results for “{query}”.',
   'search.unindexed': 'Search has no index for {version}. Rebuild the search index.',
+  'search.invalidLocaleIndex': 'Localized search is missing locale metadata. Rebuild the search index.',
+  'search.localeNotIndexed': 'Search has no index for {locale}. Rebuild the search index.',
   'search.unavailable': 'Search is unavailable right now. The search index could not be loaded.',
   'version.prefix': 'Version',
   'version.listLabel': 'Documentation versions',
@@ -119,15 +123,24 @@ export const DOQ_DEFAULT_MESSAGES = {
   'demo.notRegistered': 'Demo “{id}” is not registered by this application.',
   'playground.notRegistered': 'Playground “{id}” is not registered by this application.',
   'playground.previewWidth': 'Preview width',
+  'playground.previewWidths': 'Preview width',
   'playground.reset': 'Reset',
   'playground.expand': 'Expand',
+  'playground.expandedPreview': 'expanded preview',
   'playground.close': 'Close',
   'playground.inputs': 'Inputs',
+  'playground.required': 'A value is required.',
+  'playground.numberRequired': 'A number is required.',
+  'playground.notNumber': '“{value}” is not a number.',
+  'playground.minimum': 'Must be at least {value}.',
+  'playground.maximum': 'Must be at most {value}.',
+  'playground.previewError': 'The preview could not be created: {message}',
   'playground.notSet': 'Not set',
   'playground.events': 'Events',
   'playground.clearEvents': 'Clear',
   'playground.noEvents': 'No events yet. Interact with the preview to see them here.',
   'playground.usageCode': 'Usage code',
+  'playground.codeExampleError': '// This code example could not be generated: {message}',
   'playground.resetAnnouncement': 'Playground reset to its initial values.',
   'playground.previewAnnouncement': 'Preview width: {label}, {width}.',
   'playground.previewFullWidth': 'full width',
@@ -138,6 +151,7 @@ export const DOQ_DEFAULT_MESSAGES = {
   'playground.copiedLabel': '{label} code copied',
   'playground.copyUnavailableLabel': 'Clipboard access unavailable',
   'playground.clipboardUnavailable': 'Clipboard access is unavailable.',
+  'playground.copyAnnouncement': '{label} code copied to the clipboard.',
 } as const satisfies Record<string, string>;
 
 export type DoqMessageKey = keyof typeof DOQ_DEFAULT_MESSAGES;

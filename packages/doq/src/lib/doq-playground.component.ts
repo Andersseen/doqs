@@ -3,6 +3,8 @@ import {
   appendDoqEvent, DOQ_DEFAULT_PREVIEW_SIZES, DoqControlValue, DoqNumberControl, DoqPlaygroundControl, DoqPlaygroundDefinition, DoqPlaygroundEvent,
   DoqPlaygroundValues, DoqSelectControl, DoqStringControl, formatDoqEventPayload, initialDoqValues, parseDoqControlText,
 } from '@doqs/analog/config';
+import { DoqMessageKey, DoqMessageParams } from '@doqs/analog/config';
+import { DoqI18n } from './doq-i18n';
 
 /**
  * Creates the registered component with Angular's public `createComponent({ bindings })` API. Bindings use the
@@ -66,14 +68,14 @@ interface Snippet { readonly label: string; readonly language?: string; readonly
         </div>
         <div class="doq-pg-toolbar">
           @if (sizes().length > 1) {
-            <div class="doq-pg-sizes" role="group" aria-label="Preview width">
+            <div class="doq-pg-sizes" role="group" [attr.aria-label]="i18n.t('playground.previewWidths')">
               @for (size of sizes(); track $index) {
                 <button type="button" class="doq-pg-button" [attr.aria-pressed]="sizeIndex() === $index" (click)="setSize($index)">{{ size.label }}</button>
               }
             </div>
           }
-          <button type="button" class="doq-pg-button" (click)="reset()">Reset</button>
-          <button #expandButton type="button" class="doq-pg-button" aria-haspopup="dialog" (click)="expand()">Expand</button>
+          <button type="button" class="doq-pg-button" (click)="reset()">{{ i18n.t('playground.reset') }}</button>
+          <button #expandButton type="button" class="doq-pg-button" aria-haspopup="dialog" (click)="expand()">{{ i18n.t('playground.expand') }}</button>
         </div>
       </div>
       <div class="doq-pg-slot" #slot>
@@ -81,12 +83,12 @@ interface Snippet { readonly label: string; readonly language?: string; readonly
           <div class="doq-pg-frame" [style.max-width]="frameWidth()">
             <ng-container doqPlaygroundOutlet #outlet="doqPlaygroundOutlet" [definition]="definition()" [values]="values" [generation]="generation()" (emitted)="onEvent($event)" />
           </div>
-          @if (outlet.error(); as message) { <p class="doq-pg-error" role="alert">The preview could not be created: {{ message }}</p> }
+          @if (outlet.error(); as message) { <p class="doq-pg-error" role="alert">{{ i18n.t('playground.previewError', { message }) }}</p> }
         </div>
       </div>
       @if (controls().length) {
         <fieldset class="doq-pg-controls">
-          <legend>Inputs</legend>
+          <legend>{{ i18n.t('playground.inputs') }}</legend>
           @for (control of controls(); track control.input; let index = $index) {
             <div class="doq-pg-control" [class.is-boolean]="control.kind === 'boolean'">
               @let id = uid() + '-control-' + index;
@@ -101,7 +103,7 @@ interface Snippet { readonly label: string; readonly language?: string; readonly
                 @case ('select') {
                   <label [for]="id">{{ control.label }}@if (control.required) { <span class="doq-pg-required" aria-hidden="true"> *</span> }</label>
                   <select [id]="id" [required]="!!control.required" [attr.aria-describedby]="described" (change)="setSelect(control, $any($event.target).value)">
-                    @if (!selectRequired(control)) { <option value="" [selected]="values()[control.input] === undefined" [attr.selected]="values()[control.input] === undefined ? '' : null">Not set</option> }
+                    @if (!selectRequired(control)) { <option value="" [selected]="values()[control.input] === undefined" [attr.selected]="values()[control.input] === undefined ? '' : null">{{ i18n.t('playground.notSet') }}</option> }
                     @for (option of control.options; track $index) { <option [value]="$index" [selected]="values()[control.input] === option.value" [attr.selected]="values()[control.input] === option.value ? '' : null">{{ option.label }}</option> }
                   </select>
                 }
@@ -115,7 +117,7 @@ interface Snippet { readonly label: string; readonly language?: string; readonly
                 }
               }
               @if (control.description) { <p class="doq-pg-hint" [id]="id + '-hint'">{{ control.description }}</p> }
-              @if (failure) { <p class="doq-pg-invalid" [id]="id + '-error'">{{ failure }}</p> }
+              @if (failure) { <p class="doq-pg-invalid" [id]="id + '-error'">{{ inputError(failure) }}</p> }
             </div>
           }
         </fieldset>
@@ -123,20 +125,20 @@ interface Snippet { readonly label: string; readonly language?: string; readonly
       @if (definition().outputs?.length) {
         <div class="doq-pg-events">
           <div class="doq-pg-events-bar">
-            <p class="doq-pg-subtitle" [id]="uid() + '-events'">Events</p>
-            <button type="button" class="doq-pg-button" [disabled]="!events().length" (click)="events.set([])">Clear</button>
+            <p class="doq-pg-subtitle" [id]="uid() + '-events'">{{ i18n.t('playground.events') }}</p>
+            <button type="button" class="doq-pg-button" [disabled]="!events().length" (click)="events.set([])">{{ i18n.t('playground.clearEvents') }}</button>
           </div>
           @if (events().length) {
             <ol class="doq-pg-event-list" [attr.aria-labelledby]="uid() + '-events'">
               @for (event of events(); track event.id) { <li><strong>{{ event.label }}</strong> <code>{{ event.detail }}</code></li> }
             </ol>
-          } @else { <p class="doq-pg-empty">No events yet. Interact with the preview to see them here.</p> }
+          } @else { <p class="doq-pg-empty">{{ i18n.t('playground.noEvents') }}</p> }
         </div>
       }
       @if (snippets().length) {
         <div class="doq-pg-source">
           @if (snippets().length > 1) {
-            <div class="doq-tablist doq-pg-tablist" role="tablist" aria-label="Usage code" (keydown)="onTabKeydown($event)">
+            <div class="doq-tablist doq-pg-tablist" role="tablist" [attr.aria-label]="i18n.t('playground.usageCode')" (keydown)="onTabKeydown($event)">
               @for (snippet of snippets(); track $index) {
                 <button type="button" role="tab" class="doq-tab" [id]="uid() + '-tab-' + $index" [attr.aria-selected]="tab() === $index" [attr.aria-controls]="uid() + '-panel-' + $index" [attr.tabindex]="tab() === $index ? 0 : -1" (click)="tab.set($index)">{{ snippet.label }}</button>
               }
@@ -150,11 +152,11 @@ interface Snippet { readonly label: string; readonly language?: string; readonly
           }
         </div>
       }
-      <p class="doq-visually-hidden" role="status" aria-live="polite">{{ status() }}</p>
+      <p class="doq-visually-hidden" role="status" aria-live="polite">{{ statusText() }}</p>
       <dialog #dialog class="doq-pg-dialog" [attr.aria-labelledby]="uid() + '-dialog-title'" (close)="onDialogClose()">
         <div class="doq-pg-dialog-bar">
-          <p class="doq-pg-title" [id]="uid() + '-dialog-title'">{{ title() }} — expanded preview</p>
-          <button type="button" class="doq-pg-button" (click)="closeDialog()">Close</button>
+          <p class="doq-pg-title" [id]="uid() + '-dialog-title'">{{ title() }} — {{ i18n.t('playground.expandedPreview') }}</p>
+          <button type="button" class="doq-pg-button" (click)="closeDialog()">{{ i18n.t('playground.close') }}</button>
         </div>
         <div class="doq-pg-dialog-body" #dialogBody></div>
       </dialog>
@@ -162,6 +164,7 @@ interface Snippet { readonly label: string; readonly language?: string; readonly
   `,
 })
 export class DoqPlaygroundComponent {
+  readonly i18n = inject(DoqI18n);
   /** Stable per document position, so server and browser render the same ids. */
   readonly uid = input.required<string>();
   readonly playgroundId = input.required<string>();
@@ -179,12 +182,16 @@ export class DoqPlaygroundComponent {
   readonly sizeIndex = linkedSignal<unknown, number>({ source: this.sizes, computation: () => 0 });
   readonly expanded = signal(false);
   readonly frameWidth = computed(() => (this.expanded() ? 'none' : (this.sizes()[this.sizeIndex()]?.width ?? '100%')));
-  readonly status = signal('');
+  readonly status = signal<{ key: DoqMessageKey; params?: DoqMessageParams } | undefined>(undefined);
+  readonly statusText = computed(() => {
+    const message = this.status();
+    return message ? this.i18n.t(message.key, message.params) : '';
+  });
   readonly tab = linkedSignal<DoqPlaygroundDefinition, number>({ source: this.definition, computation: () => 0 });
   private readonly copied = signal<{ readonly text: string; readonly ok: boolean } | undefined>(undefined);
   readonly snippets = computed<Snippet[]>(() => {
     const values = this.values();
-    return (this.definition().code ?? []).map(entry => ({ label: entry.label, language: entry.language, text: runCode(entry.code, values) }));
+    return (this.definition().code ?? []).map(entry => ({ label: entry.label, language: entry.language, text: runCode(entry.code, values, message => this.i18n.t('playground.codeExampleError', { message })) }));
   });
 
   private readonly stage = viewChild.required<ElementRef<HTMLElement>>('stage');
@@ -235,13 +242,13 @@ export class DoqPlaygroundComponent {
     this.errors.set({});
     this.events.set([]);
     this.generation.update(generation => generation + 1);
-    this.status.set('Playground reset to its initial values.');
+    this.status.set({ key: 'playground.resetAnnouncement' });
   }
 
   setSize(index: number): void {
     this.sizeIndex.set(index);
     const size = this.sizes()[index];
-    this.status.set(size ? `Preview width: ${size.label}, ${size.width === '100%' ? 'full width' : size.width}.` : '');
+    this.status.set(size ? { key: 'playground.previewAnnouncement', params: { label: size.label, width: size.width === '100%' ? this.i18n.t('playground.previewFullWidth') : size.width } } : undefined);
   }
 
   onEvent(event: { readonly event: string; readonly payload: unknown }): void {
@@ -294,11 +301,15 @@ export class DoqPlaygroundComponent {
 
   copyText(snippet: Snippet): string {
     const copied = this.copied();
-    return copied?.text === snippet.text ? (copied.ok ? 'Copied' : 'Copy unavailable') : 'Copy';
+    return copied?.text === snippet.text
+      ? this.i18n.t(copied.ok ? 'playground.copied' : 'playground.copyUnavailable')
+      : this.i18n.t('playground.copy');
   }
   copyLabel(snippet: Snippet): string {
     const copied = this.copied();
-    return copied?.text === snippet.text ? (copied.ok ? `${snippet.label} code copied` : 'Clipboard access unavailable') : `Copy ${snippet.label} code`;
+    return copied?.text === snippet.text
+      ? this.i18n.t(copied.ok ? 'playground.copiedLabel' : 'playground.copyUnavailableLabel', { label: snippet.label })
+      : this.i18n.t('playground.copyLabel', { label: snippet.label });
   }
 
   /** Copies exactly the text on screen. */
@@ -307,11 +318,23 @@ export class DoqPlaygroundComponent {
       if (!globalThis.navigator?.clipboard) throw new Error('Clipboard unavailable');
       await globalThis.navigator.clipboard.writeText(snippet.text);
       this.copied.set({ text: snippet.text, ok: true });
-      this.status.set(`${snippet.label} code copied to the clipboard.`);
+      this.status.set({ key: 'playground.copyAnnouncement', params: { label: snippet.label } });
     } catch {
       this.copied.set({ text: snippet.text, ok: false });
-      this.status.set('Clipboard access is unavailable.');
+      this.status.set({ key: 'playground.clipboardUnavailable' });
     }
+  }
+
+  inputError(message: string): string {
+    if (message === 'A value is required.') return this.i18n.t('playground.required');
+    if (message === 'A number is required.') return this.i18n.t('playground.numberRequired');
+    const notNumber = /^“(.*)” is not a number\.$/.exec(message);
+    if (notNumber) return this.i18n.t('playground.notNumber', { value: notNumber[1]! });
+    const minimum = /^Must be at least (.*)\.$/.exec(message);
+    if (minimum) return this.i18n.t('playground.minimum', { value: minimum[1]! });
+    const maximum = /^Must be at most (.*)\.$/.exec(message);
+    if (maximum) return this.i18n.t('playground.maximum', { value: maximum[1]! });
+    return message;
   }
 }
 
@@ -322,7 +345,7 @@ function initialDrafts(controls: readonly DoqPlaygroundControl[]): Record<string
 }
 
 /** A formatter that throws must not take the page down: the panel says so instead. */
-function runCode(code: string | ((values: DoqPlaygroundValues) => string), values: DoqPlaygroundValues): string {
+function runCode(code: string | ((values: DoqPlaygroundValues) => string), values: DoqPlaygroundValues, formatError: (message: string) => string): string {
   if (typeof code === 'string') return code;
-  try { return String(code(values)); } catch (error) { return `// This code example could not be generated: ${error instanceof Error ? error.message : String(error)}`; }
+  try { return String(code(values)); } catch (error) { return formatError(error instanceof Error ? error.message : String(error)); }
 }

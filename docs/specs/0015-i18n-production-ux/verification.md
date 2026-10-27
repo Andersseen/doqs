@@ -4,23 +4,31 @@
 
 ## Test cases
 
-| Case       | Acceptance | Checks                                                                                                                                                                                | Result  |
-| ---------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
-| UNIT-171   | AC-001     | Locale configuration validation: prefixes, labels, direction, and eleven invalid configurations each throw once                                                                       | PASS    |
-| UNIT-172   | AC-002     | Locale and version composition: the catalog matrix, the configured version path segment, unpublished combinations, root mounting, prefix collision, unlocalized parity                | PASS    |
-| UNIT-173   | AC-003     | Prerender routes per catalog with the locale prefix, localized file transform, unlocalized output unchanged                                                                           | PASS    |
-| UNIT-174   | AC-003     | Translation identity and missing translations: same-slug links, index fallback, no title inference, unpublished locales omitted, fallback mode does not move links, reserved segments | PASS    |
-| UNIT-175   | AC-004     | Message parameter substitution, the English defaults a 0.11 reader sees, adapter fallback and identity localize                                                                       | PASS    |
-| UNIT-176   | AC-005     | `formatDoqUsage` default omission: unchanged without the option, falsy values preserved, escaping intact                                                                              | PASS    |
-| MANUAL-001 | AC-006     | Existing Angular component suite re-run after the change: 17 files, 185 tests, 0 failures                                                                                             | PASS    |
-| MANUAL-002 | AC-006     | `pnpm build:doq`: ng-packagr builds `@doqs/analog/config` and `@doqs/analog` with no errors                                                                                           | PASS    |
-| MANUAL-003 | AC-006     | Existing unit suite re-run after the change: 508 tests, 506 passed, 2 timeouts in `api-reference.spec.ts`                                                                             | PASS    |
-| MANUAL-004 | AC-007     | Locale-scoped search against a real generated static index with three locales and per-language queries                                                                                | NOT RUN |
-| MANUAL-005 | AC-008     | `<html lang>`, `dir`, canonical and `hreflang` in real server-rendered and prerendered output, and head ownership                                                                     | NOT RUN |
-| MANUAL-006 | AC-009     | Sticky TOC geometry in a real browser: rail position as `scrollY` grows, internal scroll, no horizontal overflow                                                                      | NOT RUN |
-| MANUAL-007 | AC-010     | HTTP 404 from a running SSR server for an unknown documentation URL, 200 for a known one, host routes unaffected                                                                      | NOT RUN |
-| COMP-143   | AC-011     | A host that provides `DOQ_CONFIG` in a lazy route injector renders a document and the index; without the view-level `DoqI18n` provider this throws NG0201                             | PASS    |
-| MANUAL-008 | AC-011     | `pnpm --filter site build` — the exact CI step ("Production builds and package") that failed on main with NG0201 during prerendering                                                  | PASS    |
+| Case       | Acceptance     | Checks                                                                                                                                                                                | Result  |
+| ---------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| UNIT-171   | AC-001         | Locale configuration validation: prefixes, labels, direction, and eleven invalid configurations each throw once                                                                       | PASS    |
+| UNIT-172   | AC-002         | Locale and version composition: the catalog matrix, the configured version path segment, unpublished combinations, root mounting, prefix collision, unlocalized parity                | PASS    |
+| UNIT-173   | AC-003         | Prerender routes per catalog with the locale prefix, localized file transform, unlocalized output unchanged                                                                           | PASS    |
+| UNIT-174   | AC-003         | Translation identity and missing translations: same-slug links, index fallback, no title inference, unpublished locales omitted, fallback mode does not move links, reserved segments | PASS    |
+| UNIT-175   | AC-004         | Message parameter substitution, the English defaults a 0.11 reader sees, adapter fallback and identity localize                                                                       | PASS    |
+| UNIT-176   | AC-005         | `formatDoqUsage` default omission: unchanged without the option, falsy values preserved, escaping intact                                                                              | PASS    |
+| MANUAL-001 | AC-006         | Existing Angular component suite re-run after the change: 17 files, 185 tests, 0 failures                                                                                             | PASS    |
+| MANUAL-002 | AC-006         | `pnpm build:doq`: ng-packagr builds `@doqs/analog/config` and `@doqs/analog` with no errors                                                                                           | PASS    |
+| MANUAL-003 | AC-006         | Existing unit suite re-run after the change: 508 tests, 506 passed, 2 timeouts in `api-reference.spec.ts`                                                                             | PASS    |
+| MANUAL-004 | AC-007         | Locale-scoped search against a real generated static index with three locales and per-language queries                                                                                | NOT RUN |
+| MANUAL-005 | AC-008         | `<html lang>`, `dir`, canonical and `hreflang` in real server-rendered and prerendered output, and head ownership                                                                     | NOT RUN |
+| MANUAL-006 | AC-009         | Sticky TOC geometry in a real browser: rail position as `scrollY` grows, internal scroll, no horizontal overflow                                                                      | NOT RUN |
+| MANUAL-007 | AC-010         | HTTP 404 from a running SSR server for an unknown documentation URL, 200 for a known one, host routes unaffected                                                                      | NOT RUN |
+| COMP-143   | AC-011         | A host that provides `DOQ_CONFIG` in a lazy route injector renders a document and the index; without the view-level `DoqI18n` provider this throws NG0201                             | PASS    |
+| MANUAL-008 | AC-011         | `pnpm --filter site build` — the exact CI step ("Production builds and package") that failed on main with NG0201 during prerendering                                                  | PASS    |
+| COMP-069   | AC-012         | A reactive Spanish adapter updates playground-owned controls and announcements while consumer labels remain authored                                                                  | PASS    |
+| COMP-144   | AC-013         | Pagefind applies the locale filter; localized search rejects missing locale metadata; unlocalized search still accepts a legacy index                                                 | PASS    |
+| MANUAL-009 | AC-006         | Full `pnpm test:unit`: 28 files, 557 tests passed                                                                                                                                     | PASS    |
+| MANUAL-010 | AC-006         | Full `pnpm test:components`: Doq 19 files / 192 tests and official site 2 files / 27 tests passed                                                                                     | PASS    |
+| MANUAL-011 | AC-012, AC-013 | Focused playground/search component run: 2 files, 25 tests passed; focused i18n unit run: 1 file, 40 tests passed                                                                     | PASS    |
+| MANUAL-012 | AC-006         | Fresh branch tarball passes `verify:package`: 26 checks, 0 failures                                                                                                                   | PASS    |
+| COMP-070   | AC-014         | Host route ownership remains true with multiple Doqs locales; an adapter without `ownsRouting` does not claim route ownership                                                         | PASS    |
+| MANUAL-013 | AC-006         | Final `pnpm quality:gate`: all steps through `verify:init` and repeated contract passed; `pnpm test:e2e` reported 102/247 passed and timed out; nine later steps did not run          | FAIL    |
 
 MANUAL-003 note: the two timeouts are `UNIT-096` and `UNIT-170` in `api-reference.spec.ts`, a file this
 branch does not touch. Re-run in isolation the same file reports **41 passed, 0 failed**, so they are
@@ -43,7 +51,33 @@ npx vitest run -c vitest.components.config.ts \
   test/components/lazy-provided-config.spec.ts                  # 2 passed, 0 failed (COMP-143 regression)
 pnpm --filter @doqs/analog test:components                      # 18 files, 187 passed, 0 failed (after the fix)
 pnpm --filter site build                                        # exit 0; site prerenders and indexes 42 pages
+pnpm exec vitest run -c vitest.components.config.ts test/components/playground.spec.ts test/components/search-service-versions.spec.ts  # 25 passed, 0 failed
+pnpm exec vitest run -c vitest.unit.config.ts packages/doq/test/unit/i18n.spec.ts # 40 passed, 0 failed
+pnpm typecheck:scripts                                           # exit 0
+pnpm --filter @doqs/analog build                                  # exit 0; config and main entry points built
+pnpm test:unit                                                   # 28 files, 557 passed, 0 failed
+pnpm test:components                                              # Doq 18 files / 190 passed; site 2 files / 27 passed
+pnpm sdd:check                                                    # 18 specifications structurally valid
+pnpm format:check                                                 # all files formatted
+pnpm verify:public-api                                            # compatible with 0.7.0; 228 exports across 6 entry points (preexisting 0.11 tarball; repack verification pending)
+pnpm pack:doq                                                     # generated artifacts/doqs-analog-0.11.0.tgz from the current branch
+pnpm verify:public-api                                            # current branch tarball; 228 exports across 6 entry points, compatible with 0.7.0
+pnpm verify:package artifacts/doqs-analog-0.11.0.tgz              # 26 PASS / 0 FAIL
+pnpm quality:gate                                                  # failed at test:e2e: 102/247 passed; nine later steps NOT RUN
+pnpm exec playwright test e2e/accessibility.spec.ts --grep 'Showcase A document' --workers=1 # Chromium and Firefox PASS; WebKit timed out setting up page
+pnpm test:e2e --skip-consumer e2e/accessibility.spec.ts --grep 'Showcase A document' --workers=1 # Chromium timed out in axe evaluate at 30s
 ```
+
+The final gate passed formatting, script typechecking, SDD, API/content checks, Agentyx, 557 unit tests,
+Doq and site component tests, builds, docs/performance checks, packing, package/public API checks,
+contract tests, negative controls, packed consumer builds and fresh consumer initialization. The
+Chromium E2E run then ended with 102 of 247 tests passed; 145 failed, with the reported accessibility
+case timing out inside `AxeBuilder.analyze()` (`frame.evaluate`) at the 30-second Playwright test limit.
+This is a timeout, not an axe violation assertion. In a focused run the same case passed in Chromium
+and Firefox in about 6 seconds, while WebKit timed out during page setup. A later focused Chromium run
+also timed out while other large Vite builds were active on the machine. This evidence points to
+resource contention, but does not turn the full E2E result into a pass. The nine quality-gate steps
+after E2E, including the configured Firefox/WebKit matrix, remain NOT RUN by the gate.
 
 The CI run for the milestone commit on `main` (run 40224097968) failed in "Production builds and package"
 with `RuntimeError: NG0201` thrown from `new DoqI18n` during site prerendering: `DoqI18n` was
@@ -123,10 +157,9 @@ consumer regressions (Volt UI, Angular Movement, Quartz, packed matrix).
 
 **Known consequences still open:**
 
-1. The playground component still renders English literals. It reads chrome from its own template rather
-   than from `DoqI18n`, so playground strings are **not** localized despite being inventoried in
-   `DOQ_DEFAULT_MESSAGES`. This is the largest remaining gap between what the message catalog implies and
-   what a localized site actually shows.
+1. Playground-owned interface text now uses the adapter message inventory and reacts to locale changes
+   (COMP-069). The component check uses a signal-backed test adapter; no published third-party provider or
+   real localized site has yet been verified.
 2. The version is still `0.11.0`; `packages/doq/CHANGELOG.md` and `README.md` have no 0.12 entry, and the
    official site has no page documenting `i18n`, the adapter contract or `--host-docs-sticky-offset`.
 3. `docs:check`, `api:check` and `content:check` were not run separately in this session; `format:check`,
