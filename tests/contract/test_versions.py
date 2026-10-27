@@ -33,7 +33,10 @@ def test_contract_070_every_archived_document_and_index_is_prerendered_at_its_ve
     for route, title in routes.items():
         html = _html(site, route)
         assert re.search(rf"<h1[^>]*>{re.escape(title)}</h1>", html), route
-        assert f'data-pagefind-filter="doqsVersion:{info["id"]}"' in html, route
+        assert (
+            f'data-pagefind-filter="doqsVersion:{info["id"]}"' in html
+            or f'data-pagefind-filter="doqsVersion">{info["id"]}</span>' in html
+        ), route
         assert re.search(r"<title>[^<]*· " + re.escape(info["label"]) + "</title>", html), f"{route}: version missing from the title"
     index = _html(site, info["prefix"])
     assert "doq-index" in index and f'data-doq-version="{info["id"]}"' in index
@@ -50,7 +53,11 @@ def test_contract_071_current_urls_are_unchanged_and_carry_the_current_filter(ap
     base = BASE_PATH[app]
     html = _html(site, base or "/")
     assert "doq-index" in html and 'data-doq-version="latest"' in html
-    assert f'data-pagefind-filter="doqsVersion:latest"' in _html(site, f"{base}/installation" if app == "showcase-a" else "/onboarding/first-application")
+    current_html = _html(site, f"{base}/installation" if app == "showcase-a" else "/onboarding/first-application")
+    assert (
+        'data-pagefind-filter="doqsVersion:latest"' in current_html
+        or 'data-pagefind-filter="doqsVersion">latest</span>' in current_html
+    )
     for duplicate in ("/latest", "/v/latest", "/current", "/v/current", "/docs/latest", "/docs/v/latest", "/docs/current"):
         assert site.get(duplicate)[0] == 404, duplicate
 
@@ -69,7 +76,7 @@ def test_contract_072_unknown_versions_and_missing_archive_documents_are_404(app
 
 @pytest.mark.parametrize("app", APPS)
 def test_contract_073_canonical_policy_no_cross_version_canonical_and_no_hardcoded_origin(app, request):
-    """CONTRACT-073: no configured origin means no canonical link; in particular an archive never points at the current page."""
+    """CONTRACT-073: configured canonical origins stay within the same archive; no example domain is hardcoded."""
     info = ARCHIVES[app]
     site = request.getfixturevalue(info["site"])
     for route in [*expected_archive_routes(app), info["prefix"]]:
@@ -81,7 +88,7 @@ def test_contract_073_canonical_policy_no_cross_version_canonical_and_no_hardcod
 
 @pytest.mark.parametrize("app", APPS)
 def test_contract_074_pagefind_indexes_every_version_with_filter_metadata(app, request):
-    """CONTRACT-074: each indexed page carries its own doqsVersion filter value; archive URLs keep their prefix."""
+    """CONTRACT-074: each indexed page carries its own version filter; default and localized archive URLs keep their prefixes."""
     info = ARCHIVES[app]
     site = request.getfixturevalue(info["site"])
     pages = _fragments(site)
@@ -91,7 +98,10 @@ def test_contract_074_pagefind_indexes_every_version_with_filter_metadata(app, r
         assert len(values) == 1, page["url"]
         by_version.setdefault(values[0], []).append(page["url"])
     assert set(by_version) == {"latest", info["id"]}
-    assert all(url.startswith(info["prefix"] + "/") for url in by_version[info["id"]])
+    archive_prefixes = [info["prefix"] + "/"]
+    if app == "showcase-a":
+        archive_prefixes.append("/es/docs/v/1/")
+    assert all(url.startswith(tuple(archive_prefixes)) for url in by_version[info["id"]])
     assert not any(url.startswith(info["prefix"] + "/") for url in by_version["latest"])
     assert sorted(by_version[info["id"]]) == sorted(route + "/" for route in expected_archive_routes(app))
     status, _, filters = site.get("/pagefind/pagefind-entry.json")

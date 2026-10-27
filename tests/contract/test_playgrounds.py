@@ -53,7 +53,8 @@ def test_contract_051_static_html_has_a_meaningful_preview_and_untouched_surroun
     toc = re.findall(r'href="[^"]*#([^"]+)"', html[html.index('aria-label="On this page"'):])
     assert {"choose-a-style", "example", "behavior"} <= set(toc)
     assert html.count("<h1") == 1
-    assert len(re.findall(r'<link[^>]+rel="canonical"', html)) == 0  # no origin configured: no canonical link (CONTRACT-073)
+    canonicals = re.findall(r'<link[^>]+rel="canonical"[^>]+href="([^"]+)"', html)
+    assert canonicals == ["https://docs.example.test/docs/components/button"]  # Showcase A configures its test origin.
 
 
 def test_contract_052_two_independent_instances_with_stable_ids(site_b):

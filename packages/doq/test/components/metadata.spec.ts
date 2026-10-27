@@ -3,8 +3,10 @@ import { Meta, Title } from '@angular/platform-browser';
 import { TestBed } from '@angular/core/testing';
 import { screen, waitFor } from '@testing-library/angular';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { signal } from '@angular/core';
 import { FakeDoc } from './content-state';
 import { renderDocs } from './harness';
+import { provideDoqI18n } from '../../src/public-api';
 
 @Component({ selector: 'host-about', template: '<h1>About the host</h1>' })
 class HostAboutComponent {}
@@ -72,5 +74,39 @@ describe('COMP-120 metadata lifecycle (SEO-02)', () => {
     for (const url of ['/docs/plain', '/docs/intro', '/docs', '/docs/plain']) await view.router.navigateByUrl(url);
     expect(document.head.querySelectorAll('meta[name="description"]').length).toBe(1);
     expect(TestBed.inject(Meta).getTags('name="description"').length).toBe(1);
+  });
+
+  it('leaves the document head untouched when the host owns SEO', async () => {
+    document.documentElement.lang = 'host-lang';
+    document.documentElement.dir = 'rtl';
+    const adapter = {
+      locale: signal('es').asReadonly(),
+      direction: signal<'ltr' | 'rtl'>('ltr').asReadonly(),
+      translate: (_key: string, fallback: string) => fallback,
+      localize: (path: string) => path,
+      ownsHead: true,
+    };
+    try {
+      await renderDocs({
+        docs: [
+          { ...docs[0]!, directory: 'docs-es', body: 'Contenido', attributes: { title: 'Introducción', description: 'Descripción' } },
+        ],
+        config: {
+          i18n: { defaultLocale: 'en', locales: [{ id: 'en' }, { id: 'es', contentDirectory: 'docs-es' }] },
+          versioning: { current: { id: 'latest' }, canonicalOrigin: 'https://docs.example.test' },
+        },
+        url: '/es/docs/intro',
+        providers: [provideDoqI18n(adapter)],
+      });
+      await screen.findByRole('heading', { name: 'Introducción' });
+      expect(document.title).toBe('Host title');
+      expect(description()).toBe('Host description');
+      expect(canonicals()).toEqual([]);
+      expect(document.documentElement.lang).toBe('host-lang');
+      expect(document.documentElement.dir).toBe('rtl');
+    } finally {
+      document.documentElement.removeAttribute('lang');
+      document.documentElement.removeAttribute('dir');
+    }
   });
 });

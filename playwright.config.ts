@@ -89,7 +89,7 @@ const withAdoptionVolt = !!process.env.DOQ_ADOPTION_VOLT_DIR;
 // Specs that run in Firefox and WebKit as well as Chromium: routing, history, fragments, TOC, search, versions, tabs,
 // copy, drawer, focus, themes, overflow and axe. The rest of the suite is engine-independent and stays Chromium-only.
 const crossBrowserSpecs = [
-  /adoption-routes-browsers|adoption-volt-browsers|docs-open|consumer-zone|playgrounds|slugs|toc|search\.spec|versions\.spec|mobile-navigation|code-copy|rich-content|responsive|theme|accessibility|pagination|hardening|determinism|official-docs|authoring/,
+  /adoption-routes-browsers|adoption-volt-browsers|docs-open|consumer-zone|playgrounds|slugs|toc|search\.spec|multilingual|versions\.spec|mobile-navigation|code-copy|rich-content|responsive|theme|accessibility|pagination|hardening|determinism|official-docs|authoring/,
 ];
 
 const server = (app: (typeof apps)[keyof typeof apps], port: number) => ({

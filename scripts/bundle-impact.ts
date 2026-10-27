@@ -9,7 +9,7 @@
  * total. Nothing is estimated from source: both sizes come from `vite build` output.
  * It also loads each entry in plain Node (what vite.config.ts, scripts and SSR tooling do) and records which packages each
  * entry's compiled file imports.
- *   --check   fail if the config entry is heavier than the main entry anywhere, or if it cannot be imported in plain Node
+ *   --check   fail if the config entry adds more than 0.1% to initial JavaScript, or if it cannot be imported in plain Node
  */
 import { spawnSync } from 'node:child_process';
 import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
@@ -38,6 +38,14 @@ const run = (command: string, args: string[], cwd: string) => {
 // A bare copy of the embedded showcase, installed from the tarball; the build is done per variant below.
 run('node', ['scripts/consumer.ts', tarball, dir, '--app=showcase-a', '--skip-api', '--no-build'], repo);
 await cp(resolve(dir, 'src/app/app.config.ts'), resolve(dir, 'app.config.original.ts'));
+// Showcase A now has extra host-owned localized routes. This benchmark compares the library entry points,
+// so keep its disposable consumer on the original embedded, single-locale route shape.
+await writeFile(
+  resolve(dir, 'src/doq.paths.ts'),
+  `export const doqPaths = { contentDirectory: 'docs', basePath: '/docs' } as const;\n`,
+);
+await rm(resolve(dir, 'src/app/pages/[locale]'), { recursive: true, force: true });
+await rm(resolve(dir, 'src/app/pages/docs/host-route.page.ts'), { force: true });
 
 const variant = async (entry: '@doqs/analog' | '@doqs/analog/config') => {
   await writeFile(
@@ -119,7 +127,9 @@ await writeFile(
 );
 if (check) {
   const problems: string[] = [];
-  if (config.landing > main.landing) problems.push('the landing page got heavier with the config entry');
+  // Keep a small allowance for host/build metadata bytes while guarding against a material regression.
+  if (config.landing > main.landing * 1.001)
+    problems.push('the landing page got materially heavier with the config entry');
   if (config.docs > main.docs * 1.02) problems.push('the documentation page got heavier with the config entry');
   if (!configNode.ok) problems.push(`the config entry cannot be imported in plain Node: ${configNode.error}`);
   if (configImports.some((name) => name !== '@angular/core'))

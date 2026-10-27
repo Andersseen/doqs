@@ -3,10 +3,13 @@
 ## Unreleased
 
 ### Added
+- **Multilingual production fixture.** Showcase A now exercises isolated English, Spanish and Arabic documentation catalogs, a Spanish archive, a route-derived signal adapter and real Pagefind filtering. Production verification and the 0.12 release remain pending.
+
 - **Playground localization.** Playground-owned controls, validation feedback, copy states, dialog labels and live announcements now use the existing `DOQ_DEFAULT_MESSAGES` adapter contract, so a host can translate the complete interactive surface without translating consumer-owned labels or code.
 - **Explicit route ownership.** `DoqI18nAdapter.ownsRouting` lets a host state that it owns localized route composition independently of the number of locales configured for Doqs.
 
 ### Fixed
+- **Localized index and version links.** Host-owned `/es/docs` and `/ar/docs` index routes now resolve the locale catalog from the active URL; version selectors omit archives a locale does not publish, and locale links keep their explicit target locale. Doqs-owned paths are prefixed once. No exported API changed.
 - **Localized search fails closed.** A locale-scoped query now reports a rebuild message when Pagefind has no locale metadata or the requested locale is absent. Unlocalized sites keep searching legacy indexes without locale metadata.
 
 - **Table-of-contents highlight during smooth scrolling.** Following a fragment (TOC link, search result, deep link) pins the followed heading as active, but the pin was released while the page was still scrolling towards it when the host sets `scroll-behavior: smooth`, so the previous section stayed highlighted (`/docs/guides/rich-markdown#rules` lit "Titled code"). The pin is now held until the scroll ends (`scrollend`, with a 1.5 s fallback for engines without it) and only then checked against the viewport. No export, option, route or token changed.

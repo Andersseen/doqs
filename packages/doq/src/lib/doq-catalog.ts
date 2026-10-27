@@ -1,5 +1,5 @@
 import { inject } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { injectContentFiles } from '@analogjs/content';
 import { DOQ_CONFIG, DoqConfig } from '@doqs/analog/config';
 import { DoqDocument, DoqDocumentAttributes, normalizeDoqDocument, sortDoqDocuments } from '@doqs/analog/config';
@@ -52,7 +52,9 @@ export function injectDoqLocaleCatalogs(config: DoqConfig = inject(DOQ_CONFIG), 
 export function injectDoqCatalog(config: DoqConfig = inject(DOQ_CONFIG)): DoqCatalog {
   const data = inject(ActivatedRoute).snapshot.data;
   const paths = normalizeDoqPathsFull(config);
-  return resolveCatalog(paths, data['doqVersion'] as string | undefined, data['doqLocale'] as string | undefined);
+  const urlLocale = inject(Router).url.split(/[?#]/, 1)[0]?.split('/').filter(Boolean)[0];
+  const locale = data['doqLocale'] as string | undefined ?? paths.i18n?.locales.find(candidate => !candidate.default && candidate.id === urlLocale)?.id;
+  return resolveCatalog(paths, data['doqVersion'] as string | undefined, locale);
 }
 
 export interface DoqVersionContext {

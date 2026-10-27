@@ -23,7 +23,7 @@ import { DoqI18n } from './doq-i18n';
       <ul class="doq-version-list" [attr.aria-label]="i18n.t('locale.listLabel')">
         @for (item of locales(); track item.id) {
           <li>
-            <a class="doq-version-link" [routerLink]="i18n.localize(item.href)" [attr.aria-current]="item.active ? 'true' : null" [attr.hreflang]="item.id" [attr.lang]="item.id" [class.is-active]="item.active" (click)="select()">
+            <a class="doq-version-link" [routerLink]="i18n.localize(item.href, item.id)" [attr.aria-current]="item.active ? 'true' : null" [attr.hreflang]="item.id" [attr.lang]="item.id" [class.is-active]="item.active" (click)="select()">
               <span>{{ item.label }}</span>
               @if (!item.sameDocument) { <small>{{ i18n.t('locale.opensIndex') }}</small> }
             </a>

@@ -14,7 +14,9 @@ test.describe('E2E-077 packed consumers: rich Markdown authoring', () => {
     await tabs.first().focus();
     await page.keyboard.press('ArrowRight');
     await expect(tabs.nth(1)).toBeFocused();
-    await page.getByRole('tabpanel').getByRole('button', { name: 'Copy code' }).click();
+    const activePanel = page.locator(`#${await tabs.nth(1).getAttribute('aria-controls')}`);
+    await expect(activePanel).toBeVisible();
+    await activePanel.getByRole('button', { name: 'Copy code' }).click();
     await expectClipboard(page, 'pnpm dlx voltui add button\n');
     await expect(page.locator('.doq-steps > ol > li')).toHaveCount(3);
     await expect(page.getByRole('region', { name: 'Vanta install command' })).toBeVisible();

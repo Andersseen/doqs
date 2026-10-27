@@ -13,7 +13,7 @@ const searchFor = async (page: Page, phrase: string) => {
   return dialog;
 };
 const chooseVersion = async (page: Page, name: RegExp) => {
-  const nav = page.locator('.doq-sidebar, .doq-topbar').locator('.doq-version').first();
+  const nav = page.locator('.doq-sidebar, .doq-topbar').locator('.doq-version-switcher').first();
   await nav.locator('summary').click();
   await nav.getByRole('link', { name }).click();
 };
@@ -22,16 +22,19 @@ test.describe('E2E-110 versioned documentation: embedded (/docs)', () => {
   test('current stays at its URL; switching keeps the slug, reload and history work', async ({ page }) => {
     await page.goto(`${apps.a.url}/docs/installation`);
     await expect(page.getByRole('heading', { level: 1, name: 'Installation' })).toBeVisible();
-    await expect(page.locator('.doq-version summary')).toContainText('Latest');
-    await expect(page.locator('article')).toHaveAttribute('data-pagefind-filter', 'doqsVersion:latest');
-    await expect(page.locator('link[rel="canonical"]')).toHaveCount(0);
+    await expect(page.locator('.doq-version-switcher summary')).toContainText('Latest');
+    await expect(page.locator('article [data-pagefind-filter="doqsVersion"]')).toHaveText('latest');
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+      'href',
+      'https://docs.example.test/docs/installation',
+    );
 
     await chooseVersion(page, /v1\.x/);
     await expect(page).toHaveURL(`${apps.a.url}/docs/v/1/installation`);
     await expect(page.getByText('Vanta 1.x supports')).toBeVisible();
     await expect(page.getByRole('heading', { level: 1, name: 'Installation' })).toBeFocused();
     await expect(page).toHaveTitle('Installation · Vanta UI · v1.x');
-    await expect(page.locator('.doq-version summary')).toContainText('v1.x');
+    await expect(page.locator('.doq-version-switcher summary')).toContainText('v1.x');
     await expect(page.getByRole('note')).toContainText('archived version');
     // Sidebar lists only archive documents.
     const sidebar = page.getByRole('navigation', { name: 'Vanta UI docs' });
@@ -39,7 +42,7 @@ test.describe('E2E-110 versioned documentation: embedded (/docs)', () => {
 
     await page.reload();
     await expect(page.getByText('Vanta 1.x supports')).toBeVisible();
-    await expect(page.locator('.doq-version summary')).toContainText('v1.x');
+    await expect(page.locator('.doq-version-switcher summary')).toContainText('v1.x');
 
     await page.goBack();
     await expect(page).toHaveURL(`${apps.a.url}/docs/installation`);
@@ -133,12 +136,12 @@ test.describe('E2E-110 versioned documentation: embedded (/docs)', () => {
   test('keyboard-only version selection and Escape', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto(`${apps.a.url}/docs/installation`);
-    const summary = page.locator('.doq-sidebar .doq-version summary');
+    const summary = page.locator('.doq-sidebar .doq-version-switcher summary');
     await summary.focus();
     await page.keyboard.press('Enter');
-    await expect(page.locator('.doq-version-list')).toBeVisible();
+    await expect(page.locator('.doq-version-switcher .doq-version-list')).toBeVisible();
     await page.keyboard.press('Escape');
-    await expect(page.locator('.doq-version-list')).toBeHidden();
+    await expect(page.locator('.doq-version-switcher .doq-version-list')).toBeHidden();
     await expect(summary).toBeFocused();
     await page.keyboard.press('Space');
     await page.keyboard.press(nextFocusKey(page));
@@ -152,7 +155,7 @@ test.describe('E2E-110 versioned documentation: embedded (/docs)', () => {
     await page.setViewportSize({ width: 375, height: 812 });
     await page.goto(`${apps.a.url}/docs/installation`);
     await page.getByRole('button', { name: /menu/i }).click();
-    await page.locator('.doq-version summary').click();
+    await page.locator('.doq-version-switcher summary').click();
     await page.getByRole('link', { name: /v1\.x/ }).click();
     await expect(page).toHaveURL(`${apps.a.url}/docs/v/1/installation`);
     await expect(page.locator('.doq-sidebar')).toBeHidden();
@@ -169,8 +172,8 @@ test.describe('E2E-110 versioned documentation: embedded (/docs)', () => {
       await expect(page.getByRole('heading', { level: 1, name: 'Installation' })).toBeVisible();
       const menu = page.getByRole('button', { name: /menu/i });
       if (await menu.isVisible()) await menu.click();
-      await page.locator('.doq-version summary').click();
-      await expect(page.locator('.doq-version-list')).toBeVisible();
+      await page.locator('.doq-version-switcher summary').click();
+      await expect(page.locator('.doq-version-switcher .doq-version-list')).toBeVisible();
       expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(
         0,
       );
@@ -192,7 +195,7 @@ test.describe('E2E-110 versioned documentation: embedded (/docs)', () => {
 test.describe('E2E-111 versioned documentation: docs-first root (/)', () => {
   test('current at "/", archive at "/v/1" with nested and custom-slug pages', async ({ page }) => {
     await page.goto(`${apps.b.url}/`);
-    await expect(page.locator('.doq-version summary')).toContainText('2.x (latest)');
+    await expect(page.locator('.doq-version-switcher summary')).toContainText('2.x (latest)');
     await page.goto(`${apps.b.url}/onboarding/first-application`);
     await expect(page.getByText('Create a workspace')).toBeVisible();
     await expect(page.locator('.doq-root')).toHaveAttribute('data-sidebar', 'right');
@@ -235,11 +238,18 @@ test.describe('E2E-111 versioned documentation: docs-first root (/)', () => {
       expect((await request.get(`${apps.b.url}${path}`)).status(), path).toBe(404);
     await page.goto(`${apps.b.url}/v/1/onboarding/first-application`);
     await expect(page.locator('[ng-version]').first()).toBeAttached();
-    await expect(page.locator('article')).toHaveAttribute('data-pagefind-filter', 'doqsVersion:1');
+    const article = page.locator('article');
+    const inlineVersionFilter = await article.getAttribute('data-pagefind-filter');
+    if (inlineVersionFilter) expect(inlineVersionFilter).toBe('doqsVersion:1');
+    else await expect(article.locator('[data-pagefind-filter="doqsVersion"]')).toHaveText('1');
   });
 });
 
 test.describe('E2E-112 versioned documentation: packed tarball consumers', () => {
+  test.skip(
+    !!process.env['E2E_SKIP_CONSUMER'],
+    'The focused suite omits packed consumers; the full quality gate builds and serves them.',
+  );
   test('embedded consumer switches versions and filters search', async ({ page }) => {
     await page.goto(`${apps.consumerA.url}/docs/installation`);
     await chooseVersion(page, /v1\.x/);

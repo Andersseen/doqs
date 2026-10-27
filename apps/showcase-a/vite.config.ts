@@ -16,7 +16,7 @@ export default defineConfig({
       ssr: true,
       static: true,
       content: { highlighter: 'prism' },
-      prerender: { routes: async () => ['/', ...doqPrerenderRoutes(doqPaths)] },
+      prerender: { routes: async () => ['/', '/docs/host-route', ...doqPrerenderRoutes(doqPaths)] },
     }),
     // Renders Markdown one file at a time so duplicate-heading ids stay identical between builds.
     doqDeterministicMarkdown(),

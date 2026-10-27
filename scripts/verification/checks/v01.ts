@@ -144,6 +144,14 @@ export async function v01(page: Page, app: VerifiedApp) {
     await page.evaluate(
       `history.pushState({},'','${x.docsBase}/not-a-real-page');dispatchEvent(new PopStateEvent('popstate'))`,
     );
+    if (x.unknownRouteOwnedByHost) {
+      await waitFor(
+        async () => (await page.evaluate('location.pathname')) === `${x.docsBase}/not-a-real-page`,
+        'unknown route delegated to host router',
+      );
+      assert.equal(await count('.doq-not-found'), 0, 'Doqs leaves unknown routes to the host router');
+      continue;
+    }
     await waitFor(async () => (await count('.doq-not-found')) > 0, 'not-found view');
     await waitTitle(`Page not found · ${x.suffix}`, 'not found');
   }

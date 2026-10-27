@@ -47,6 +47,39 @@ test.describe('E2E-004 table of contents', () => {
     await expect(page.locator('#behavior')).toBeInViewport();
   });
 
+  test('E2E-165: sticky TOC and sidebar remain below the host header and a tall TOC scrolls internally', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 520 });
+    await page.goto(`${apps.a.url}/docs/guides/localization`);
+    const toc = page.getByRole('complementary', { name: 'On this page' });
+    await expect(toc).toBeVisible();
+    await expect.poll(() => toc.evaluate((element) => element.scrollHeight - element.clientHeight)).toBeGreaterThan(0);
+    await toc.evaluate((element) => {
+      element.scrollTop = 140;
+    });
+    await expect.poll(() => toc.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+    const internalScroll = await toc.evaluate((element) => element.scrollTop);
+
+    await page.evaluate(() => window.scrollTo(0, 650));
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(300);
+    const geometry = await page.evaluate(() => {
+      const header = document.querySelector('.volt-header')!.getBoundingClientRect();
+      const toc = document.querySelector<HTMLElement>('.doq-toc')!.getBoundingClientRect();
+      const sidebar = document.querySelector<HTMLElement>('.doq-sidebar')!.getBoundingClientRect();
+      return {
+        headerBottom: header.bottom,
+        tocTop: toc.top,
+        sidebarTop: sidebar.top,
+        horizontalOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+      };
+    });
+    expect(geometry.tocTop).toBeGreaterThanOrEqual(geometry.headerBottom - 1);
+    expect(Math.abs(geometry.tocTop - geometry.sidebarTop)).toBeLessThanOrEqual(2);
+    expect(internalScroll).toBeGreaterThan(0);
+    expect(geometry.horizontalOverflow).toBe(false);
+  });
+
   test('Showcase B has no table of contents because its host disabled it', async ({ page }) => {
     await page.goto(`${apps.b.url}/concepts/models`);
     await expect(page.getByRole('heading', { level: 1, name: 'Content models' })).toBeVisible();
