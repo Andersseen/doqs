@@ -312,7 +312,7 @@ test.describe('E2E-114 Angular Movement adoption: versioned handbook', () => {
     request,
   }) => {
     await page.goto(`${base}/handbook/introduction`);
-    await expect(page.locator('.doq-version summary')).toContainText('Latest');
+    await expect(page.locator('.doq-version-switcher summary')).toContainText('Latest');
     await expect(page.locator('article')).toHaveAttribute('data-pagefind-filter', 'doqsVersion:latest');
     await page.goto(archive);
     await expect(page.locator('.doq-version-notice')).toContainText('v0.9.0');
@@ -333,7 +333,7 @@ test.describe('E2E-114 Angular Movement adoption: versioned handbook', () => {
     page,
   }) => {
     await page.goto(reference('move-enter-directive'));
-    await page.locator('.doq-version summary').click();
+    await page.locator('.doq-version-switcher summary').click();
     await page.getByRole('link', { name: /v0\.9\.0/ }).click();
     await expect(page).toHaveURL(archivedReference('move-enter-directive'));
     await expect(page.getByRole('heading', { level: 1, name: 'MoveEnterDirective' })).toBeVisible();
@@ -341,7 +341,7 @@ test.describe('E2E-114 Angular Movement adoption: versioned handbook', () => {
     await page.reload();
     await expect(page.getByRole('heading', { level: 1, name: 'MoveEnterDirective' })).toBeVisible();
     await page.goto(reference('move-time'));
-    await page.locator('.doq-version summary').click();
+    await page.locator('.doq-version-switcher summary').click();
     await page.getByRole('link', { name: /v0\.9\.0/ }).click();
     await expect(page).toHaveURL(archive);
   });

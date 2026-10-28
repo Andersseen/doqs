@@ -86,8 +86,8 @@ test.describe('E2E-140 Zone.js application with the packed package', () => {
 
   test('version selection switches between current and archived documentation', async ({ page }) => {
     await page.goto(`${base}/docs/installation`);
-    await expect(page.locator('.doq-version summary')).toContainText('Latest');
-    await page.locator('.doq-sidebar .doq-version summary').click();
+    await expect(page.locator('.doq-version-switcher summary')).toContainText('Latest');
+    await page.locator('.doq-sidebar .doq-version-switcher summary').click();
     await page.locator('.doq-version-list').getByRole('link', { name: /v1/ }).click();
     await expect(page).toHaveURL(/\/docs\/v\/1\//);
     await expect(page.getByRole('note')).toContainText('archived version');

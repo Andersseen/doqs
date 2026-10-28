@@ -28,6 +28,7 @@ export const showcases: readonly Showcase[] = [
     tocPath: '/docs/overview',
     v01: {
       docsBase: '/docs',
+      unknownRouteOwnedByHost: true,
       hostRoute: true,
       hostTitle: 'Vanta UI — Components with good energy',
       hostDescription: 'Vanta UI is an Angular component library with sensible defaults.',

@@ -15,6 +15,7 @@
 import { existsSync } from 'node:fs';
 import { readdir, readFile } from 'node:fs/promises';
 import { dirname, join, relative, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import {
   checkPage,
   expectedRoute,
@@ -49,16 +50,45 @@ interface Versions {
 
 /** Content directories and their base paths, read from the app's build-safe `doq.paths.ts` the same way Doq normalizes them. */
 async function readVersions(source: string): Promise<Versions[]> {
-  const text = await readFile(join(source, 'src/doq.paths.ts'), 'utf8');
-  const contentDirectory = /contentDirectory:\s*'([^']+)'/.exec(text)?.[1] ?? 'docs';
-  const basePath = /basePath:\s*'([^']+)'/.exec(text)?.[1] ?? '/docs';
-  const segment = /pathSegment:\s*'([^']+)'/.exec(text)?.[1] ?? 'v';
-  const versions: Versions[] = [{ contentDirectory, basePath }];
-  for (const archive of text.matchAll(/\{\s*id:\s*'([^']+)'[^}]*?contentDirectory:\s*'([^']+)'[^}]*\}/g)) {
-    versions.push({
-      contentDirectory: archive[2]!,
-      basePath: `${basePath === '/' ? '' : basePath}/${segment}/${archive[1]}`,
-    });
+  // The config is intentionally build-safe and plain data. Importing it avoids guessing at nested
+  // locale/archive object boundaries with regexes, which misclassified locale IDs as version IDs.
+  const { doqPaths } = (await import(pathToFileURL(join(source, 'src/doq.paths.ts')).href)) as {
+    doqPaths: {
+      contentDirectory?: string;
+      basePath?: string;
+      versioning?: {
+        pathSegment?: string;
+        current?: { id?: string };
+        archives?: readonly { id: string; contentDirectory?: string }[];
+      };
+      i18n?: {
+        defaultLocale: string;
+        locales: readonly {
+          id: string;
+          contentDirectory?: string;
+          archives?: Readonly<Record<string, string>>;
+        }[];
+      };
+    };
+  };
+  const root = doqPaths.basePath ?? '/docs';
+  const segment = doqPaths.versioning?.pathSegment ?? 'v';
+  const joinBase = (...parts: string[]) => `/${parts.flatMap((part) => part.split('/').filter(Boolean)).join('/')}`;
+  const defaultLocale = doqPaths.i18n?.defaultLocale;
+  const locales = doqPaths.i18n?.locales ?? [{ id: '', contentDirectory: doqPaths.contentDirectory }];
+  const archives = doqPaths.versioning?.archives ?? [];
+  const versions: Versions[] = [];
+  for (const locale of locales) {
+    const prefix = locale.id && locale.id !== defaultLocale ? `/${locale.id}` : '';
+    const currentDirectory = locale.contentDirectory ?? doqPaths.contentDirectory ?? 'docs';
+    versions.push({ contentDirectory: currentDirectory, basePath: joinBase(prefix, root) });
+    for (const archive of archives) {
+      const directory =
+        locale.archives?.[archive.id] ??
+        (!doqPaths.i18n || locale.id === defaultLocale ? archive.contentDirectory : undefined);
+      if (directory)
+        versions.push({ contentDirectory: directory, basePath: joinBase(prefix, root, segment, archive.id) });
+    }
   }
   return versions;
 }

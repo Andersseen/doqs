@@ -4,6 +4,7 @@ import { provideClientHydration, withEventReplay } from '@angular/platform-brows
 import { provideFileRouter, requestContextInterceptor, withExtraRoutes } from '@analogjs/router';
 import { provideContent, withMarkdownRenderer } from '@analogjs/content';
 import { defineDoqConfig, doqRoutes, formatDoqUsage, provideDoq } from '@doqs/analog';
+import { provideShowcaseDoqI18n } from './doq-i18n-adapter';
 import { doqPaths } from '../doq.paths';
 import { VantaButtonDemoComponent } from './demos/button-demo';
 import { VantaButtonPlaygroundComponent } from './demos/button-playground';
@@ -19,6 +20,7 @@ const doqConfig = defineDoqConfig({
   sidebarWidth: '14rem',
   showTableOfContents: true,
   search: { enabled: true },
+  unmatched: 'continue',
   demos: { 'vanta-button': VantaButtonDemoComponent, 'vanta-install': VantaInstallDemoComponent, 'vanta-contrast': VantaContrastDemoComponent },
   playgrounds: {
     'vanta-button': {
@@ -52,6 +54,7 @@ export const appConfig: ApplicationConfig = {
     provideFileRouter(withExtraRoutes(doqRoutes(doqConfig))),
     provideContent(withMarkdownRenderer()),
     provideDoq(doqConfig),
+    provideShowcaseDoqI18n,
     provideHttpClient(withInterceptors([requestContextInterceptor])), provideClientHydration(withEventReplay()),
   ],
 };

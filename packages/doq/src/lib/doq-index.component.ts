@@ -56,7 +56,8 @@ export class DoqIndexComponent {
   readonly copy = resolveDoqCopy(this.config);
   readonly navigation = injectDoqDocuments(this.config, this.version.id, this.catalog.locale.id || undefined);
   /** Every version leads to its own index from an index page, staying inside the active locale. */
-  readonly versionLinks = this.versioned ? doqVersionLinks(this.versions, this.version.id, null, injectDoqCatalogs(this.config, this.catalog.locale.id || undefined)) : [];
+  private readonly versionCatalogs = injectDoqCatalogs(this.config, this.catalog.locale.id || undefined);
+  readonly versionLinks = this.versioned ? doqVersionLinks(this.versions.filter(version => !!this.versionCatalogs[version.id]), this.version.id, null, this.versionCatalogs) : [];
   /** Every locale leads to its own index from an index page, staying inside the active version. */
   readonly localeLinks = computed(() => this.i18n.i18n ? doqLocaleLinks(this.i18n.i18n, this.catalog.locale.id, this.version, null, {}) : []);
 

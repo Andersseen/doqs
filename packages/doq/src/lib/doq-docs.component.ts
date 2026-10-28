@@ -50,6 +50,12 @@ interface DocAttributes { title?: string; description?: string; order?: number; 
           </aside>
         }
         <article class="doq-article" data-pagefind-body [attr.data-pagefind-filter]="pagefindFilter()">
+          @if (versioned && catalog.locale.id) {
+            <div data-pagefind-ignore hidden>
+              <span data-pagefind-filter="doqsVersion">{{ catalog.version.id }}</span>
+              <span data-pagefind-filter="doqsLocale">{{ catalog.locale.id }}</span>
+            </div>
+          }
           @if (untranslatedFallback()) {
             <p class="doq-version-notice" role="note" data-pagefind-ignore>{{ i18n.t('locale.untranslatedNotice', { label: defaultLocaleLabel() }) }}</p>
           }
@@ -274,6 +280,7 @@ export class DoqDocsComponent {
   readonly previous = computed(() => this.adjacent(-1));
   readonly next = computed(() => this.adjacent(1));
   private readonly titleEffect = effect(() => {
+    if (this.i18n.hostOwnsHead) return;
     const doc = this.document();
     if (doc === undefined) return;
     const title = doc?.attributes.title;
@@ -356,15 +363,20 @@ export class DoqDocsComponent {
   /** `dir` is written on the documentation region only when Doqs owns the document head. */
   readonly dirAttribute = computed(() => (this.i18n.localized && !this.i18n.hostOwnsHead ? this.i18n.direction() : null));
   readonly pagefindFilter = computed(() => {
-    const filters: string[] = [];
-    if (this.versioned) filters.push(`${DOQ_VERSION_FILTER}:${this.catalog.version.id}`);
-    if (this.catalog.locale.id) filters.push(`${DOQ_LOCALE_FILTER}:${this.catalog.locale.id}`);
-    return filters.length ? filters.join(';') : null;
+    // Pagefind allows one inline key/value capture. Keep version and locale as
+    // separate named captures above when both dimensions apply.
+    if (this.versioned && this.catalog.locale.id) return null;
+    if (this.versioned) return `${DOQ_VERSION_FILTER}:${this.catalog.version.id}`;
+    if (this.catalog.locale.id) return `${DOQ_LOCALE_FILTER}:${this.catalog.locale.id}`;
+    return null;
   });
   readonly searchVersion = this.versioned ? this.catalog.version : undefined;
   readonly searchLocale = this.catalog.locale.id || undefined;
   private unknownVersion(): boolean { return !!this.route.snapshot.data['doqUnknownVersion']; }
-  versionList() { return this.versions; }
+  versionList() {
+    const versions: typeof this.versions = this.versions.filter(version => !!this.versionCatalogs[version.id]);
+    return versions;
+  }
   currentVersionLabel(): string { return this.versions[0]?.label ?? ''; }
   defaultLocaleLabel(): string { return this.i18n.i18n?.locales.find(locale => locale.default)?.label ?? ''; }
   /** Mount path of the catalog the routed document actually came from, for its canonical URL. */

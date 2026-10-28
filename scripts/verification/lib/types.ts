@@ -12,6 +12,8 @@ export interface V01Expectations {
   docSlot: string;
   /** A document without a `description`, reachable from the sidebar. */
   noDescriptionPath?: string;
+  /** Unknown paths are deliberately delegated to host routing with unmatched: 'continue'. */
+  unknownRouteOwnedByHost?: boolean;
 }
 
 export interface VerifiedApp {

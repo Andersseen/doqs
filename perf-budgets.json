@@ -39,16 +39,16 @@
     {
       "target": "showcase-a",
       "metric": "searchIndexBytes",
-      "baseline": 26371,
-      "max": 26900,
-      "reason": "Pagefind index, fragments and filters for the committed documents; scales with content and versions, not with library code. 0.10 adds two guides (current and the 1.x archive) to the index."
+      "baseline": 32623,
+      "max": 33623,
+      "reason": "Updated 0.12 content baseline: real English, Spanish and Arabic fixture pages plus a Spanish archive measure 32,623 B, +6,252 B from the previous 26,371 B. Static content grows by eight prerendered routes (including two host-owned locale indexes and the preserved host route); initial JS and CSS both decreased. The 1,000 B allowance is for index serialization variation, not runtime code."
     },
     {
       "target": "showcase-a",
       "metric": "staticPages",
-      "baseline": 23,
-      "max": 23,
-      "reason": "Pages prerendered for the committed content and its archive; an unexpected extra page means a duplicate route. 0.10 adds the generated Source-backed examples guide and its 1.x archive counterpart (21 + 2)."
+      "baseline": 31,
+      "max": 31,
+      "reason": "Updated 0.12 content baseline: 31 prerendered pages, up from 23, for the English/Spanish/Arabic guide, Spanish archive and host-owned localized index routes. docs:check verifies every added documentation route against its source and found no duplicate routes. This exact page count budget leaves no unexplained route growth."
     },
     {
       "target": "showcase-b",
@@ -104,14 +104,14 @@
       "metric": "initialCssGzip",
       "baseline": 19004,
       "max": 19955,
-      "reason": "Stylesheet linked by the landing and the documentation (host Tailwind and Volt styles plus the Doqs core stylesheet). It was 11,160 B before the documentation was added. 0.9: the Doqs core stylesheet gained the playground styles (about 0.9 KB gzip). Official-site 1.0 readiness: the redesigned landing and the new /examples page add utility classes plus about 1 KB raw of site CSS (active-route indicator, hero glow, documentation preview window); measured 16,772 B before and 17,372 B after (+600 B gzip) on the same machine. Spec 0017 (theme switch and landing redesign): the CSS-driven theme switch, the view-transition rules and the landing’s hero, card, step and call-to-action styles plus their utility classes; measured 17,584 B before and 19,004 B after (+1,420 B gzip) on the same machine."
+      "reason": "Stylesheet linked by the landing and the documentation (host Tailwind and Volt styles plus the Doqs core stylesheet). It was 11,160 B before the documentation was added. 0.9: the Doqs core stylesheet gained the playground styles (about 0.9 KB gzip). Official-site 1.0 readiness: the redesigned landing and the new /examples page add utility classes plus about 1 KB raw of site CSS (active-route indicator, hero glow, documentation preview window); measured 16,772 B before and 17,372 B after (+600 B gzip) on the same machine. Spec 0017 (theme switch and landing redesign): the CSS-driven theme switch, the view-transition rules and the landing\u2019s hero, card, step and call-to-action styles plus their utility classes; measured 17,584 B before and 19,004 B after (+1,420 B gzip) on the same machine."
     },
     {
       "target": "site",
       "metric": "searchIndexBytes",
-      "baseline": 73013,
-      "max": 80800,
-      "reason": "Pagefind index of the official documentation (19 pages: 0.9 adds the Interactive playgrounds guide). 0.10 adds 22 documentation pages: two guides and the 20-page Content tooling API reference. 0.11 adds that one guide: measured 80,180 B, +5.7 KB over the 0.10 figure (74,5xx B)."
+      "baseline": 82802,
+      "max": 86942,
+      "reason": "Updated 0.12 content baseline: 82,802 B, +9,789 B from 73,013 B after adding the multilingual setup guide to the existing versioning guide page. Static page count remains 45; initial JS and CSS remain within their existing budgets. The 5% allowance covers Pagefind serialization variation for authored content, not runtime code."
     },
     {
       "target": "site",

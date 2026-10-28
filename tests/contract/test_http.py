@@ -25,10 +25,17 @@ def _expected_routes(app: str) -> dict[str, str]:
     """Public route -> title, derived from the Markdown sources (custom slug wins over path)."""
     content = REPO / f"apps/{app}/src/content/docs"
     routes = {}
-    for file in sorted(content.rglob("*.md")):
-        meta = _frontmatter(file)
-        slug = meta.get("slug") or str(file.relative_to(content).with_suffix("")).removesuffix("/index")
-        routes[BASE_PATH[app] + "/" + slug.strip("/")] = meta["title"]
+    directories = [(content, BASE_PATH[app])]
+    if app == "showcase-a":
+        directories.extend([
+            (REPO / "apps/showcase-a/src/content/docs-es", "/es/docs"),
+            (REPO / "apps/showcase-a/src/content/docs-ar", "/ar/docs"),
+        ])
+    for directory, base_path in directories:
+        for file in sorted(directory.rglob("*.md")):
+            meta = _frontmatter(file)
+            slug = meta.get("slug") or str(file.relative_to(directory).with_suffix("")).removesuffix("/index")
+            routes[base_path + "/" + slug.strip("/")] = meta["title"]
     return routes
 
 
@@ -44,10 +51,14 @@ def expected_archive_routes(app: str) -> dict[str, str]:
     info = ARCHIVES[app]
     content = REPO / f"apps/{app}/src/content/{info['directory']}"
     routes = {}
-    for file in sorted(content.rglob("*.md")):
-        meta = _frontmatter(file)
-        slug = meta.get("slug") or str(file.relative_to(content).with_suffix("")).removesuffix("/index")
-        routes[info["prefix"] + "/" + slug.strip("/")] = meta["title"]
+    directories = [(content, info["prefix"])]
+    if app == "showcase-a":
+        directories.append((REPO / "apps/showcase-a/src/content/docs-es-v1", "/es/docs/v/1"))
+    for directory, prefix in directories:
+        for file in sorted(directory.rglob("*.md")):
+            meta = _frontmatter(file)
+            slug = meta.get("slug") or str(file.relative_to(directory).with_suffix("")).removesuffix("/index")
+            routes[prefix + "/" + slug.strip("/")] = meta["title"]
     return routes
 
 

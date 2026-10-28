@@ -76,7 +76,7 @@ export function extractPageFacts(html: string): PageFacts {
     ? [...toc[1]!.matchAll(/<a\b[^>]*>/gi)]
         .map((match) => attribute(match[0], 'href') ?? '')
         .filter((href) => href.includes('#'))
-        .map((href) => href.slice(href.indexOf('#') + 1))
+        .map((href) => decodeURIComponent(href.slice(href.indexOf('#') + 1)))
     : [];
 
   const article = /<article\b[^>]*class="[^"]*\bdoq-article\b[^"]*"[^>]*>([\s\S]*?)<\/article>/i.exec(html);

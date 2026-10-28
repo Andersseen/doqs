@@ -84,7 +84,12 @@ export class DoqI18n {
 
   /** The public URL of an in-app documentation path, locale-prefixed by whoever owns routing. */
   localize(path: string, locale?: string): string {
-    return this.adapter ? this.adapter.localize(path, locale) : path;
+    if (this.adapter?.ownsRouting) return this.adapter.localize(path, locale);
+    if (!this.i18n) return this.adapter ? this.adapter.localize(path, locale) : path;
+    const knownPrefix = this.i18n.locales.find(candidate => !candidate.default && path.startsWith(`${candidate.prefix}/`));
+    if (knownPrefix) return path;
+    const target = this.i18n.locales.find(candidate => candidate.id === (locale ?? this.locale()));
+    return target && !target.default ? `${target.prefix}${path.startsWith('/') ? path : `/${path}`}` : path;
   }
 
   /** Ask the host to switch language; undefined when the host has no switcher, so Doqs renders links. */

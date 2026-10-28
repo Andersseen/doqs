@@ -60,3 +60,50 @@ One index serves all versions; the dialog filters to the version being read. Arc
 :::
 
 `doq doctor` checks archive ids, overlapping folders and missing archive directories.
+
+## Localized documentation
+
+Give each locale an independent Markdown directory. The default locale keeps its URLs; other locales get a prefix, and archives are listed only for locales that publish them. Doqs matches translations by slug, never title.
+
+```ts
+// src/doq.paths.ts
+export const doqPaths = {
+  contentDirectory: 'docs', basePath: '/docs',
+  versioning: { current: { id: 'latest' }, archives: [{ id: '1', contentDirectory: 'docs-v1' }] },
+  i18n: { defaultLocale: 'en', fallback: 'none', locales: [
+    { id: 'en', label: 'English' },
+    { id: 'es', label: 'Español', contentDirectory: 'docs-es', archives: { '1': 'docs-es-v1' } },
+    { id: 'ar', label: 'العربية', dir: 'rtl', contentDirectory: 'docs-ar' },
+  ] },
+} as const;
+```
+
+A complete Analog host adapter derives its state from the Router and is registered with Doqs:
+
+```ts
+// src/app/app.config.ts
+import { computed, inject } from '@angular/core';
+import { NavigationEnd, Router } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { filter, map } from 'rxjs';
+import { provideContent, withMarkdownRenderer } from '@analogjs/content';
+import { provideFileRouter, withExtraRoutes } from '@analogjs/router';
+import { defineDoqConfig, doqRoutes, provideDoq, DOQ_I18N_ADAPTER } from '@doqs/analog';
+import { doqPaths } from '../doq.paths';
+const config = defineDoqConfig(doqPaths);
+const hostI18n = { provide: DOQ_I18N_ADAPTER, useFactory: () => {
+  const router = inject(Router);
+  const url = toSignal(router.events.pipe(filter(e => e instanceof NavigationEnd), map(() => router.url)),
+    { initialValue: router.url });
+  const locale = computed(() => url().split('/').filter(Boolean)[0] ?? 'en');
+  return { locale, direction: computed(() => locale() === 'ar' ? 'rtl' : 'ltr'),
+    translate: (_key: string, fallback: string) => fallback, localize: (path: string) => path,
+    ownsRouting: false, ownsHead: false };
+} };
+export const appConfig = { providers: [provideContent(withMarkdownRenderer()),
+  provideFileRouter(withExtraRoutes(doqRoutes(config))), provideDoq(config), hostI18n] };
+```
+
+Put matching slugs in `src/content/docs-es` or `docs-ar`; the Spanish archive uses `docs-es-v1`. `fallback: 'default-locale'` is an alternative that shows a notice. After prerendering, run `doq-search index`; locale and version filters compose, and localized search fails closed without locale metadata. Pagefind stays optional.
+
+Set `ownsRouting: true` only when the host creates localized routes; set `ownsHead: true` only when it owns language, direction, canonical and alternate metadata. Use the same URL-derived locale for SSR and hydration. Vite SSR currently renders not-found content with HTTP 200, while static missing routes return 404. Set `dir: 'rtl'` for Arabic and verify keyboard and sticky-TOC behavior against the host header.

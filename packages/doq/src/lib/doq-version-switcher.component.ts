@@ -13,7 +13,7 @@ import { DoqI18n } from './doq-i18n';
   imports: [RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <details #disclosure class="doq-version" data-pagefind-ignore (keydown.escape)="close(true)">
+    <details #disclosure class="doq-version doq-version-switcher" data-pagefind-ignore (keydown.escape)="close(true)">
       <summary class="doq-version-summary"><span class="doq-version-prefix">{{ i18n.t('version.prefix') }}</span> <strong>{{ active()?.label }}</strong></summary>
       <ul class="doq-version-list" [attr.aria-label]="i18n.t('version.listLabel')">
         @for (item of versions(); track item.id) {
