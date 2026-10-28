@@ -1,6 +1,7 @@
 name: CI extended
 
-# Checks too slow or too rarely broken to hold every pull request: the Firefox and WebKit matrix. Runs every Monday on main,
+# Checks too slow or too rarely broken to hold every pull request: the Firefox and WebKit matrix and the external adoption proofs
+# (real Angular Movement and Volt UI checkouts built from the packed tarball; they need the network and take several minutes). Runs every Monday on main,
 # on demand (Actions → CI extended → Run workflow, any branch), and on pull requests that carry the `full-ci` label.
 
 on:
@@ -44,6 +45,39 @@ jobs:
         if: failure()
         with:
           name: playwright-traces-browsers
+          retention-days: 7
+          path: |
+            test-results
+            playwright-report
+
+  # Pinned historical revisions plus the integrated Angular Movement. Revisions come from scripts/adoption*.ts; set AM_REF / VU_REF /
+  # AM_EXISTING_REF (for example to HEAD) in a manual run to probe newer upstream revisions. Read-only: nothing is pushed anywhere.
+  external-adoption:
+    name: External adoption proofs (Angular Movement, Volt UI)
+    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'full-ci')
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm pack:doq
+      - uses: ./.github/actions/playwright-browsers
+        with:
+          browsers: chromium
+      - run: pnpm verify:adoption
+      - run: pnpm verify:adoption:routes
+      - run: pnpm verify:adoption:existing
+      - run: pnpm verify:adoption:volt
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: playwright-traces-adoption
           retention-days: 7
           path: |
             test-results

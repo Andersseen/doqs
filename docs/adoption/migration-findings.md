@@ -57,3 +57,10 @@ Line counts are `wc -l` over the files named, taken from the clones. They measur
 | Two navigations and two searches during incremental migration | by design; resolves when the last page moves | [E]           |
 | Converting the remaining pages                                | content work, no Doqs gap found              | [S]           |
 | Cloudflare SSR (Volt UI)                                      | host                                         | not exercised |
+
+## 0.12 update: pinned revisions and the integrated Angular Movement
+
+- **[E] Reproducibility.** The statements above were recorded against Angular Movement `4e71e2f` and Volt UI `7c76ef3`. The scripts now fetch those exact commits (full SHAs in `scripts/adoption*.ts`), log the resolved SHA and refuse to replace a directory they did not create. Moving to a newer revision is an explicit `AM_REF` / `VU_REF`, not a silent default.
+- **[E] Angular Movement after its own integration (`ce9b03d`).** Its maintainers adopted Doqs with a lazy `/docs` region, a registry of real playgrounds, API reference, source-backed examples and `doq-search`. Rebuilt with the packed tarball and its own lockfile, `doq doctor --build` reports no failure, `docs:check` validates all 91 documentation pages, and every Markdown route renders as one Doqs article while `/` and the demos stay host-owned (`pnpm verify:adoption:existing`). One thing only a real consumer showed: it prerenders with `autoSubfolderIndex: false` (`docs/x.html`), which the repository's own `docs:check` and preview server did not understand; they do now.
+- **[E] Volt UI SSR noise.** Server rendering Volt UI's ng-primitives collapsible prints `MutationObserver is not defined` with or without Doqs; the proof records it as upstream and fails on anything else.
+- **[S] Localization.** Volt UI's localized routes (Etyma) remain host-owned; Doqs does not translate its pages and has no Etyma-specific integration. A host that wants localized documentation uses the provider-neutral adapter.

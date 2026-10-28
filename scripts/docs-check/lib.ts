@@ -262,3 +262,16 @@ export function inLinkScope(path: string, scopes: readonly string[]): boolean {
 export function formatDiagnostics(diagnostics: readonly Diagnostic[]): string {
   return diagnostics.map((item) => `  ${item.page}  [${item.kind}] ${item.message}`).join('\n');
 }
+
+/**
+ * The route a prerendered HTML file answers, or undefined for files that are not pages. Both Nitro layouts are understood:
+ * `docs/guide/index.html` (the default) and `docs/guide.html` (`prerender.autoSubfolderIndex: false`, which Cloudflare Pages
+ * serves at the slash-less URL). `404.html` and `200.html` are host fallbacks, not routes.
+ */
+export function routeOfHtmlFile(relativePath: string): string | undefined {
+  const normalized = relativePath.split('\\').join('/');
+  if (!normalized.endsWith('.html')) return undefined;
+  if (/^(404|200)\.html$/.test(normalized)) return undefined;
+  const route = normalized.replace(/(^|\/)index\.html$/, '').replace(/\.html$/, '');
+  return `/${route}`.replace(/\/+$/, '') || '/';
+}

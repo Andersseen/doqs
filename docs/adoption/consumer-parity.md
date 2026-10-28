@@ -5,6 +5,8 @@ Evidence level in the last column: **E** = executed in a browser against a real 
 Checkouts: Angular Movement `4e71e2f` (Angular 22, zoneless, Tailwind 4, Analog, `SmoothScrollService`), Volt UI `7c76ef3`
 (Angular 22, zoneless, Tailwind 4, Analog, Etyma localization, Cloudflare Pages). Both are disposable clones; nothing was pushed.
 
+**Revisions (0.12).** The evidence in this document was recorded at those two revisions and is reproduced by pinned commands: `verify:adoption:routes` and `verify:adoption` use Angular Movement `4e71e2f75be3c82ec4f10ca80dc91d08562efa1b` (before Angular Movement integrated Doqs), `verify:adoption:volt` uses Volt UI `7c76ef3b8aa6e3d6c4da578b0be22939556d53af`. Angular Movement has since integrated Doqs itself (`ce9b03d547bc774268768e5f57c028452e70b9ad`, `@doqs/analog` 0.11.0); `pnpm verify:adoption:existing` rebuilds that revision with the packed tarball and checks it as an existing integration, so a row below describes the historical onboarding unless it says otherwise. Each script prints the checked-out SHA and accepts `AM_REF`, `AM_EXISTING_REF` or `VU_REF` to probe another revision; a failing override is upstream drift until shown otherwise.
+
 Classes: **DOQS REPLACES** (the custom implementation can be removed), **HOST-OWNED** (stays in the application), **PARTIAL**,
 **BLOCKED**, **NOT VERIFIED**.
 

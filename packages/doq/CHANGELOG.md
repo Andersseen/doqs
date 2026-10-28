@@ -1,18 +1,42 @@
 # Changelog
 
-## Unreleased
+## 0.12.0
 
-### Added
+Multilingual documentation, accepted in production builds. Additive: no exported type, function, configuration key, frontmatter key, route or `--host-docs-*` token was removed or changed (`pnpm verify:public-api` passes against the 0.7 baseline). The release is driven by the existing workflow after merge; nothing is published by hand.
+
+### Highlights
+
+- **Locale-aware catalogs and routes.** `DoqPaths.i18n` declares independently authored Markdown directories per locale and version archive; the default locale keeps its URLs, other locales get locale-prefixed routes, and a missing translation is never inferred from another language.
+- **Provider-neutral translation adapter.** `provideDoqI18n()` and `DoqI18nAdapter` connect the host's own locale lifecycle (a signal in the host) to Doqs-owned text. Doqs does not ship a competing translation provider; `ownsRouting` and `ownsHead` state what the host owns.
+- **Localized interface and playgrounds.** Playground controls, validation, copy states, dialog labels and announcements use the same `DOQ_DEFAULT_MESSAGES` catalog.
+- **Localized Pagefind.** Locale and version filters compose; a locale-scoped query fails closed with a rebuild message when the index has no locale metadata.
+- **RTL and SEO ownership.** `dir`, `lang`, canonical and `hreflang` alternates are written by Doqs, or left to the host with `ownsHead`.
+- **Sticky table of contents.** The sidebar and TOC stay below the host header and scroll internally on tall pages.
+- **Compatibility and adoption hardening.** The packed tarball is proven outside the monorepo on Angular 21 and 22, with localized, unlocalized, docs-first, embedded, versioned, search-disabled, playground, API-reference and source-authoring consumers. Repository-only adoption proofs now pin their upstream revisions, separate onboarding of an unintegrated application from rebuilding an already integrated one, and run in an isolated extended CI job.
+
+### Added and fixed
+
+#### Added
 - **Multilingual production fixture.** Showcase A now exercises isolated English, Spanish and Arabic documentation catalogs, a Spanish archive, a route-derived signal adapter and real Pagefind filtering. Production verification and the 0.12 release remain pending.
 
 - **Playground localization.** Playground-owned controls, validation feedback, copy states, dialog labels and live announcements now use the existing `DOQ_DEFAULT_MESSAGES` adapter contract, so a host can translate the complete interactive surface without translating consumer-owned labels or code.
 - **Explicit route ownership.** `DoqI18nAdapter.ownsRouting` lets a host state that it owns localized route composition independently of the number of locales configured for Doqs.
 
-### Fixed
+#### Fixed
 - **Localized index and version links.** Host-owned `/es/docs` and `/ar/docs` index routes now resolve the locale catalog from the active URL; version selectors omit archives a locale does not publish, and locale links keep their explicit target locale. Doqs-owned paths are prefixed once. No exported API changed.
 - **Localized search fails closed.** A locale-scoped query now reports a rebuild message when Pagefind has no locale metadata or the requested locale is absent. Unlocalized sites keep searching legacy indexes without locale metadata.
 
 - **Table-of-contents highlight during smooth scrolling.** Following a fragment (TOC link, search result, deep link) pins the followed heading as active, but the pin was released while the page was still scrolling towards it when the host sets `scroll-behavior: smooth`, so the previous section stayed highlighted (`/docs/guides/rich-markdown#rules` lit "Titled code"). The pin is now held until the scroll ends (`scrollend`, with a 1.5 s fallback for engines without it) and only then checked against the viewport. No export, option, route or token changed.
+
+#### Repository tooling (not part of the package)
+
+- `pnpm verify:adoption:existing` rebuilds Angular Movement, which already integrates Doqs, against the packed tarball and checks every Markdown route it derives from the real tree; `verify:adoption` and `verify:adoption:routes` are pinned to the last pre-integration revision, `verify:adoption:volt` to a pinned Volt UI revision, each with an `*_REF` override. `docs:check` and the static preview understand `route.html` output (`prerender.autoSubfolderIndex: false`).
+
+#### Known limitations
+
+- **Live SSR status.** Doqs sets `RESPONSE_INIT.status = 404` for a documentation URL it claims, but Analog 2.9's server handler never reads it, so an Analog SSR server (including the dev server) answers 200 for a missing page. Prerendered output on a static host answers 404. Doqs does not simulate a status or ship a server.
+- Screen readers and browsers on Windows are untested; Zone.js applications, Vite < 8 and Analog > 2.9 are unverified.
+- A real localized site grows its static Pagefind index with its content; that is not a runtime cost (the index is fetched only when search opens).
 
 ## 0.11.0
 

@@ -149,6 +149,14 @@ await write(
         rxjs: '~7.8.0',
         tslib: '^2.3.0',
       },
+      // Strict peers apply to everything except one upstream packaging defect: @angular/build's optional WASM binding
+      // (@oxc-parser/binding-wasm32-wasi 0.150) pins @emnapi/*@2.0.0-alpha.3 while its own @napi-rs/wasm-runtime asks for
+      // ^1.7.1 || 2.0.0-beta.2. It is reached before Doqs is installed and has nothing to do with it.
+      pnpm: {
+        peerDependencyRules: {
+          allowedVersions: { '@emnapi/core': '2.0.0-alpha.3', '@emnapi/runtime': '2.0.0-alpha.3' },
+        },
+      },
       devDependencies: {
         '@analogjs/platform': '^2.9.0',
         '@analogjs/vite-plugin-angular': '^2.9.0',

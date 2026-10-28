@@ -14,7 +14,7 @@
  */
 import { existsSync } from 'node:fs';
 import { readdir, readFile } from 'node:fs/promises';
-import { dirname, join, relative, resolve } from 'node:path';
+import { join, relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import {
   checkPage,
@@ -24,6 +24,7 @@ import {
   frontmatterSlug,
   inLinkScope,
   resolveLink,
+  routeOfHtmlFile,
   type Diagnostic,
   type PageFacts,
 } from './docs-check/lib.ts';
@@ -100,11 +101,8 @@ async function checkTarget(dist: string, source: string | undefined): Promise<Di
   const diagnostics: Diagnostic[] = [];
   const pages = new Map<string, PageFacts>();
   for (const file of await walk(dist, (path) => path.endsWith('.html'))) {
-    if (!file.endsWith('index.html')) continue;
-    pages.set(
-      `/${relative(dist, dirname(file)).split('\\').join('/')}`.replace(/^\/$/, '/'),
-      extractPageFacts(await readFile(file, 'utf8')),
-    );
+    const route = routeOfHtmlFile(relative(dist, file));
+    if (route) pages.set(route, extractPageFacts(await readFile(file, 'utf8')));
   }
   if (!pages.size)
     return [{ kind: 'missing-route', page: dist, message: 'No prerendered HTML found; run the build first.' }];

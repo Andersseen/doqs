@@ -19,7 +19,7 @@ Doqs output is static HTML, so any static host works. No permanent server is req
 
 ## Static hosting
 
-Serve `dist/analog/public`. Each prerendered route is an `index.html` in its own folder, so direct links and refreshes work on any static host. URLs that were not generated must answer 404; unknown documentation URLs then show a "page not found" view after in-app navigation.
+Serve `dist/analog/public`. Each prerendered route is an `index.html` in its own folder (or `route.html` when Nitro's `prerender.autoSubfolderIndex` is `false`, as Cloudflare Pages prefers), so direct links and refreshes work on any static host. `docs:check` and `doq doctor --build` understand both layouts. URLs that were not generated must answer 404; unknown documentation URLs then show a "page not found" view after in-app navigation.
 
 ## Checks for CI
 

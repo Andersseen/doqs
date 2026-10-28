@@ -79,7 +79,12 @@ if (mode === 'full') {
   );
   // The real-site proofs clone public repositories, so they need network access: `pnpm quality:gate --adoption`.
   if (process.argv.includes('--adoption'))
-    steps.push(pnpm('verify:adoption'), pnpm('verify:adoption:routes'), pnpm('verify:adoption:volt'));
+    steps.push(
+      pnpm('verify:adoption'),
+      pnpm('verify:adoption:routes'),
+      pnpm('verify:adoption:existing'),
+      pnpm('verify:adoption:volt'),
+    );
 }
 
 const results: { name: string; seconds: number; ok: boolean }[] = [];

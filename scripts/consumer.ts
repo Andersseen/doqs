@@ -177,6 +177,13 @@ if (angular === '22') {
   // Unused by the showcase's vite.config.ts, and its tsconfck dependency only supports TypeScript 5 (a tooling peer, not Doqs's).
   delete manifest.devDependencies['vite-tsconfig-paths'];
   if (manifest.dependencies['typescript']) manifest.dependencies['typescript'] = '~6.0.0';
+  // Strict peers apply to everything except one upstream packaging defect: @angular/build's optional WASM binding
+  // (@oxc-parser/binding-wasm32-wasi 0.150) pins @emnapi/*@2.0.0-alpha.3 while its own @napi-rs/wasm-runtime asks for
+  // ^1.7.1 || 2.0.0-beta.2. Nothing in it involves Doqs.
+  manifest.pnpm = {
+    ...manifest.pnpm,
+    peerDependencyRules: { allowedVersions: { '@emnapi/core': '2.0.0-alpha.3', '@emnapi/runtime': '2.0.0-alpha.3' } },
+  };
 }
 manifest.scripts = {
   ...Object.fromEntries(

@@ -18,7 +18,13 @@ createServer(async (request, response) => {
     const pathname = decodeURIComponent(new URL(request.url ?? '/', 'http://localhost').pathname);
     let file = resolve(root, `.${pathname}`);
     if (!file.startsWith(root + sep) && file !== root) throw new Error('Invalid path');
-    if ((await stat(file)).isDirectory()) file = resolve(file, 'index.html');
+    // `prerender.autoSubfolderIndex: false` emits /docs/guide as docs/guide.html (Cloudflare Pages serves it at the slash-less
+    // URL), including for a route that also has children (docs/reference.html next to the docs/reference/ directory).
+    const info = await stat(file).catch(() => undefined);
+    const html = `${file}.html`;
+    if (!info && !extname(file)) file = html;
+    else if (info?.isDirectory())
+      file = (await stat(resolve(file, 'index.html')).catch(() => undefined)) ? resolve(file, 'index.html') : html;
     // Read before writing headers: a directory without index.html (for example the bare /docs/v prefix) must answer 404.
     const body = await readFile(file);
     response.writeHead(200, { 'content-type': mime[extname(file)] ?? 'application/octet-stream' });
