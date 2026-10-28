@@ -221,6 +221,8 @@ if (process.argv.includes('--test')) {
     env: {
       ...process.env,
       DOQ_ADOPTION_VOLT_DIR: outDir,
+      // The proof needs its own checkout and the workspace builds, not the tarball consumers of the main E2E suite.
+      E2E_SKIP_CONSUMER: '1',
       PLAYWRIGHT_BROWSERS_PATH: process.env['PLAYWRIGHT_BROWSERS_PATH'] ?? '0',
     },
   });
