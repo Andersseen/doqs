@@ -26,6 +26,14 @@ export const apps = {
       'dist/analog/public',
     ),
   },
+  // Angular Movement as it is today, already integrated with Doqs (scripts/adoption-existing.ts): the packed tarball replaces the installed one.
+  adoptionExisting: {
+    url: 'http://127.0.0.1:4287',
+    root: resolve(
+      process.env.DOQ_ADOPTION_EXISTING_DIR ?? resolve(tmpdir(), 'doq-adoption-angular-movement-existing'),
+      'dist/analog/public',
+    ),
+  },
   // Bare Analog apps that adopted Doqs with `doq init` (scripts/init-consumer.ts), built from the packed tarball.
   initEmbedded: {
     url: 'http://127.0.0.1:4282',
@@ -85,6 +93,7 @@ const withConsumer = !process.env.E2E_SKIP_CONSUMER;
 const withAdoption = !!process.env.DOQ_ADOPTION_DIR;
 const withAdoptionRoutes = !!process.env.DOQ_ADOPTION_ROUTES_DIR;
 const withAdoptionVolt = !!process.env.DOQ_ADOPTION_VOLT_DIR;
+const withAdoptionExisting = !!process.env.DOQ_ADOPTION_EXISTING_DIR;
 
 // Specs that run in Firefox and WebKit as well as Chromium: routing, history, fragments, TOC, search, versions, tabs,
 // copy, drawer, focus, themes, overflow and axe. The rest of the suite is engine-independent and stays Chromium-only.
@@ -109,6 +118,7 @@ export default defineConfig({
     ...(withAdoption ? [] : [/adoption\.spec/]),
     ...(withAdoptionRoutes ? [] : [/adoption-routes/]),
     ...(withAdoptionVolt ? [] : [/adoption-volt/]),
+    ...(withAdoptionExisting ? [] : [/adoption-existing/]),
   ],
   outputDir: 'test-results',
   fullyParallel: true,
@@ -153,5 +163,6 @@ export default defineConfig({
     ...(withAdoption ? [server(apps.adoption, 4278)] : []),
     ...(withAdoptionRoutes ? [server(apps.adoptionRoutes, 4284)] : []),
     ...(withAdoptionVolt ? [server(apps.adoptionVolt, 4286)] : []),
+    ...(withAdoptionExisting ? [server(apps.adoptionExisting, 4287)] : []),
   ],
 });

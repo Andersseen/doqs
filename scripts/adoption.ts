@@ -9,50 +9,36 @@
  * Needs network access to clone the repository.
  */
 import { spawnSync } from 'node:child_process';
-import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { cp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
+import {
+  assertDisposable,
+  checkout,
+  editor,
+  expectStatus as expectStatusFor,
+  repo,
+  runner,
+  tarballPath,
+  upstream,
+} from './adoption-lib.ts';
 
-const repo = resolve(import.meta.dirname, '..');
+/** Pre-integration revision (Angular Movement v1.4.0 era, before it adopted Doqs): the historical onboarding contract. */
+const pinnedRef = '4e71e2f75be3c82ec4f10ca80dc91d08562efa1b';
 const overlay = resolve(repo, 'tests/adoption/angular-movement');
-const { version } = JSON.parse(await readFile(resolve(repo, 'packages/doq/package.json'), 'utf8')) as {
-  version: string;
-};
-const tarball = resolve(repo, `artifacts/doqs-analog-${version}.tgz`);
+const { tarball } = await tarballPath();
 const args = process.argv.slice(2).filter((arg) => !arg.startsWith('--'));
 const outDir = resolve(
   args[0] ?? process.env['DOQ_ADOPTION_DIR'] ?? resolve(tmpdir(), 'doq-adoption-angular-movement'),
 );
-if (outDir === repo || outDir.startsWith(`${repo}/`))
-  throw new Error(`The proof must live outside the repository: ${outDir}`);
-await readFile(tarball).catch(() => {
-  throw new Error(`Tarball not found: ${tarball}. Run "pnpm pack:doq" first.`);
-});
+assertDisposable(outDir);
 
-const run = (command: string, args: string[], cwd: string) => {
-  console.log(`adoption: ${command} ${args.join(' ')}`);
-  const result = spawnSync(command, args, { cwd, stdio: 'inherit', env: { ...process.env, CI: 'true' } });
-  if (result.status !== 0) process.exit(result.status ?? 1);
-};
-const edit = async (file: string, change: (text: string) => string) => {
-  const path = resolve(outDir, file);
-  const before = await readFile(path, 'utf8');
-  const after = change(before);
-  if (after === before)
-    throw new Error(`Overlay patch for ${file} changed nothing; Angular Movement's layout may have moved.`);
-  await writeFile(path, after);
-};
+const run = runner('adoption');
+const edit = editor('adoption', outDir);
+const expectStatus = expectStatusFor('adoption');
 
-await rm(outDir, { recursive: true, force: true });
-await mkdir(resolve(outDir, '..'), { recursive: true });
-const source = process.env['AM_REPO'] ?? 'https://github.com/Andersseen/angular-movement.git';
-run(
-  'git',
-  ['clone', '--depth', '1', ...(process.env['AM_REF'] ? ['--branch', process.env['AM_REF']] : []), source, outDir],
-  repo,
-);
-const sha = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: outDir, encoding: 'utf8' }).stdout.trim();
-console.log(`adoption: Angular Movement checkout ${sha}`);
+const source = upstream('AM', 'https://github.com/Andersseen/angular-movement.git', pinnedRef);
+const sha = await checkout('adoption', source, outDir);
 
 // Doqs 0.8 onboarding on the real checkout, before anything is integrated by hand: install the packed tarball, let `doq doctor`
 // report the real gaps, scaffold a SEPARATE documentation region (/handbook; the host's /docs and /demos stay untouched) with
@@ -182,9 +168,6 @@ const doqApi = (command: 'generate' | 'check', extraArgs = apiArgs) => {
   );
   return result;
 };
-const expectStatus = (what: string, actual: number | null, expected: number) => {
-  if (actual !== expected) throw new Error(`adoption: ${what}: expected exit ${expected}, got ${actual}`);
-};
 const typescriptVersion = spawnSync('pnpm', ['exec', 'tsc', '--version'], {
   cwd: outDir,
   encoding: 'utf8',
@@ -205,7 +188,7 @@ expectStatus('check right after generate', doqApi('check').status, 0);
 const archiveRef = process.env['AM_ARCHIVE_REF'] ?? 'v0.9.0';
 const history = resolve(outDir, '..', `${outDir.split('/').pop()}-history`);
 await rm(history, { recursive: true, force: true });
-run('git', ['clone', '--depth', '1', '--branch', archiveRef, source, history], repo);
+run('git', ['clone', '--depth', '1', '--branch', archiveRef, source.url, history], repo);
 await cp(resolve(history, 'projects/movement'), resolve(outDir, 'projects/movement-v0-9'), {
   recursive: true,
   filter: (path) => !path.includes('node_modules'),
@@ -342,6 +325,8 @@ if (process.argv.includes('--test')) {
     env: {
       ...process.env,
       DOQ_ADOPTION_DIR: outDir,
+      // The proof needs its own checkout and the workspace builds, not the tarball consumers of the main E2E suite.
+      E2E_SKIP_CONSUMER: '1',
       PLAYWRIGHT_BROWSERS_PATH: process.env['PLAYWRIGHT_BROWSERS_PATH'] ?? '0',
     },
   });

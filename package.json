@@ -42,6 +42,7 @@
     "verify:adoption": "node scripts/adoption.ts --test",
     "verify:adoption:routes": "node scripts/adoption-routes.ts --test",
     "verify:adoption:volt": "node scripts/adoption-volt.ts --test",
+    "verify:adoption:existing": "node scripts/adoption-existing.ts --test",
     "verify:negative-controls": "node scripts/negative-controls.ts",
     "agentyx:check": "agentyx doctor --locked --check",
     "verify:change": "node scripts/verify.ts change",

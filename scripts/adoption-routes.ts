@@ -9,54 +9,36 @@
  * Needs network access to clone the repository.
  */
 import { spawnSync } from 'node:child_process';
-import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { cp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
+import {
+  assertDisposable,
+  checkout,
+  editor,
+  expectStatus as expectStatusFor,
+  repo,
+  runner,
+  tarballPath,
+  upstream,
+} from './adoption-lib.ts';
 
-const repo = resolve(import.meta.dirname, '..');
+/** Pre-integration revision (Angular Movement v1.4.0 era, before it adopted Doqs): the historical onboarding contract. */
+const pinnedRef = '4e71e2f75be3c82ec4f10ca80dc91d08562efa1b';
 const overlay = resolve(repo, 'tests/adoption/angular-movement-routes');
-const { version } = JSON.parse(await readFile(resolve(repo, 'packages/doq/package.json'), 'utf8')) as {
-  version: string;
-};
-const tarball = resolve(repo, `artifacts/doqs-analog-${version}.tgz`);
+const { tarball } = await tarballPath();
 const args = process.argv.slice(2).filter((arg) => !arg.startsWith('--'));
 const outDir = resolve(
   args[0] ?? process.env['DOQ_ADOPTION_ROUTES_DIR'] ?? resolve(tmpdir(), 'doq-adoption-angular-movement-routes'),
 );
-if (outDir === repo || outDir.startsWith(`${repo}/`))
-  throw new Error(`The proof must live outside the repository: ${outDir}`);
-await readFile(tarball).catch(() => {
-  throw new Error(`Tarball not found: ${tarball}. Run "pnpm pack:doq" first.`);
-});
+assertDisposable(outDir);
 
-const run = (command: string, commandArgs: string[], cwd: string) => {
-  console.log(`adoption-routes: ${command} ${commandArgs.join(' ')}`);
-  const result = spawnSync(command, commandArgs, { cwd, stdio: 'inherit', env: { ...process.env, CI: 'true' } });
-  if (result.status !== 0) process.exit(result.status ?? 1);
-};
-const edit = async (file: string, change: (text: string) => string) => {
-  const path = resolve(outDir, file);
-  const before = await readFile(path, 'utf8');
-  const after = change(before);
-  if (after === before)
-    throw new Error(`Overlay patch for ${file} changed nothing; Angular Movement's layout may have moved.`);
-  await writeFile(path, after);
-};
-const expectStatus = (what: string, actual: number | null, expected: number) => {
-  if (actual !== expected) throw new Error(`adoption-routes: ${what}: expected exit ${expected}, got ${actual}`);
-};
+const run = runner('adoption-routes');
+const edit = editor('adoption-routes', outDir);
+const expectStatus = expectStatusFor('adoption-routes');
 
-await rm(outDir, { recursive: true, force: true });
-await mkdir(resolve(outDir, '..'), { recursive: true });
-const source = process.env['AM_REPO'] ?? 'https://github.com/Andersseen/angular-movement.git';
-run(
-  'git',
-  ['clone', '--depth', '1', ...(process.env['AM_REF'] ? ['--branch', process.env['AM_REF']] : []), source, outDir],
-  repo,
-);
-const sha = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: outDir, encoding: 'utf8' }).stdout.trim();
-console.log(`adoption-routes: Angular Movement checkout ${sha}`);
-await writeFile(resolve(outDir, '.doq-adoption-sha'), `${sha}\n`);
+const source = upstream('AM', 'https://github.com/Andersseen/angular-movement.git', pinnedRef);
+const sha = await checkout('adoption-routes', source, outDir);
 
 run('pnpm', ['install', '--ignore-scripts', '--no-frozen-lockfile'], outDir);
 run('pnpm', ['add', `file:${tarball}`, 'pagefind@1.5.2', '--ignore-scripts'], outDir);
@@ -183,6 +165,8 @@ if (process.argv.includes('--test')) {
     env: {
       ...process.env,
       DOQ_ADOPTION_ROUTES_DIR: outDir,
+      // The proof needs its own checkout and the workspace builds, not the tarball consumers of the main E2E suite.
+      E2E_SKIP_CONSUMER: '1',
       PLAYWRIGHT_BROWSERS_PATH: process.env['PLAYWRIGHT_BROWSERS_PATH'] ?? '0',
     },
   });

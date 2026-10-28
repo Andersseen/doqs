@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import GithubSlugger from 'github-slugger';
-import { checkPage, extractPageFacts, frontmatterSlug, inLinkScope, resolveLink } from './lib.ts';
+import { checkPage, extractPageFacts, frontmatterSlug, inLinkScope, resolveLink, routeOfHtmlFile } from './lib.ts';
 
 const slugger = () => new GithubSlugger();
 const article = (body: string, toc = '') =>
@@ -90,5 +90,16 @@ describe('UNIT-141 link classification and route expectations (SEO-03, SEO-05)',
   it('reads a frontmatter slug', () => {
     expect(frontmatterSlug('---\ntitle: A\nslug: "custom/path"\n---\nbody')).toBe('custom/path');
     expect(frontmatterSlug('---\ntitle: A\n---\nbody')).toBeUndefined();
+  });
+});
+
+describe('UNIT-144 prerendered file layouts', () => {
+  it('maps both Nitro layouts to the same route and ignores host fallbacks', () => {
+    expect(routeOfHtmlFile('docs/guide/index.html')).toBe('/docs/guide');
+    expect(routeOfHtmlFile('docs/guide.html')).toBe('/docs/guide');
+    expect(routeOfHtmlFile('index.html')).toBe('/');
+    expect(routeOfHtmlFile('docs\\guide.html')).toBe('/docs/guide');
+    expect(routeOfHtmlFile('404.html')).toBeUndefined();
+    expect(routeOfHtmlFile('docs/guide.txt')).toBeUndefined();
   });
 });

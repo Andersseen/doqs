@@ -11,51 +11,36 @@
  * (the Cloudflare packaging is the host's business) and the routes under test are prerendered.
  */
 import { spawnSync } from 'node:child_process';
-import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { cp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
+import {
+  assertDisposable,
+  capture,
+  checkout,
+  editor,
+  expectStatus as expectStatusFor,
+  repo,
+  runner,
+  tarballPath,
+  upstream,
+} from './adoption-lib.ts';
 
-const repo = resolve(import.meta.dirname, '..');
+/** The historical contract: the Volt UI revision the 0.11 parity evidence was recorded against. */
+const pinnedRef = '7c76ef3b8aa6e3d6c4da578b0be22939556d53af';
 const overlay = resolve(repo, 'tests/adoption/volt-ui');
-const { version } = JSON.parse(await readFile(resolve(repo, 'packages/doq/package.json'), 'utf8')) as {
-  version: string;
-};
-const tarball = resolve(repo, `artifacts/doqs-analog-${version}.tgz`);
+const { tarball } = await tarballPath();
 const args = process.argv.slice(2).filter((arg) => !arg.startsWith('--'));
 const outDir = resolve(args[0] ?? process.env['DOQ_ADOPTION_VOLT_DIR'] ?? resolve(tmpdir(), 'doq-adoption-volt-ui'));
-if (outDir === repo || outDir.startsWith(`${repo}/`))
-  throw new Error(`The proof must live outside the repository: ${outDir}`);
-await readFile(tarball).catch(() => {
-  throw new Error(`Tarball not found: ${tarball}. Run "pnpm pack:doq" first.`);
-});
+assertDisposable(outDir);
 
-const run = (command: string, commandArgs: string[], cwd: string) => {
-  console.log(`adoption-volt: ${command} ${commandArgs.join(' ')}`);
-  const result = spawnSync(command, commandArgs, { cwd, stdio: 'inherit', env: { ...process.env, CI: 'true' } });
-  if (result.status !== 0) process.exit(result.status ?? 1);
-};
-const edit = async (file: string, change: (text: string) => string) => {
-  const path = resolve(outDir, file);
-  const before = await readFile(path, 'utf8');
-  const after = change(before);
-  if (after === before) throw new Error(`Overlay patch for ${file} changed nothing; Volt UI's layout may have moved.`);
-  await writeFile(path, after);
-};
-const expectStatus = (what: string, actual: number | null, expected: number) => {
-  if (actual !== expected) throw new Error(`adoption-volt: ${what}: expected exit ${expected}, got ${actual}`);
-};
+const run = runner('adoption-volt');
+const runCaptured = capture('adoption-volt');
+const edit = editor('adoption-volt', outDir);
+const expectStatus = expectStatusFor('adoption-volt');
 
-await rm(outDir, { recursive: true, force: true });
-await mkdir(resolve(outDir, '..'), { recursive: true });
-const source = process.env['VU_REPO'] ?? 'https://github.com/Andersseen/volt-ui.git';
-run(
-  'git',
-  ['clone', '--depth', '1', ...(process.env['VU_REF'] ? ['--branch', process.env['VU_REF']] : []), source, outDir],
-  repo,
-);
-const sha = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: outDir, encoding: 'utf8' }).stdout.trim();
-console.log(`adoption-volt: Volt UI checkout ${sha}`);
-await writeFile(resolve(outDir, '.doq-adoption-sha'), `${sha}\n`);
+const source = upstream('VU', 'https://github.com/Andersseen/volt-ui.git', pinnedRef);
+const sha = await checkout('adoption-volt', source, outDir);
 
 run('pnpm', ['install', '--ignore-scripts'], outDir);
 run('pnpm', ['add', `file:${tarball}`, '@analogjs/content@^2.9.1', 'pagefind@1.5.2', '--ignore-scripts'], outDir);
@@ -175,12 +160,40 @@ const content = spawnSync('pnpm', ['--silent', 'exec', 'doq', 'content', 'genera
 console.log(content.stdout + content.stderr);
 expectStatus('doq content generate', content.status, 0);
 
+// Uncaught exceptions printed while prerendering are the host's own SSR behavior unless proven otherwise. The one known case:
+// ng-primitives' `fromMutationObserver` (reached through Volt UI's collapsible/select primitives) constructs a MutationObserver
+// during server rendering. The unmodified upstream checkout prints exactly the same line when given the same prerender routes
+// (docs/specs/0020-adoption-release-readiness/verification.md), Prerendering still completes, and no Doqs frame is on the stack.
+// Anything else, or the same error with a Doqs frame, fails the proof instead of being waved through.
+const knownUpstreamSsrNoise = /ReferenceError: MutationObserver is not defined\n\s+at setupOrTeardownObserver/;
+const classifyBuildOutput = (output: string) => {
+  const blocks = output.split(/\n(?=\[uncaughtException\])/).filter((block) => block.startsWith('[uncaughtException]'));
+  const unknown = blocks.filter(
+    (block) =>
+      !knownUpstreamSsrNoise.test(block) ||
+      /doqs|@doqs/i.test(
+        block
+          .split('\n')
+          .filter((line) => /^\s+at /.test(line))
+          .join('\n'),
+      ),
+  );
+  if (unknown.length > 0)
+    throw new Error(
+      `adoption-volt: unclassified error(s) while prerendering:\n${unknown.join('\n---\n').slice(0, 4000)}`,
+    );
+  console.log(
+    `adoption-volt: upstream SSR noise (ng-primitives MutationObserver, not Doqs): ${blocks.length} occurrence(s)`,
+  );
+};
+
 // Volt UI's own prebuild steps, then its build, then the Pagefind index of the prerendered output.
 run('node', ['cli/generate-manifest.js'], outDir);
 run('node', ['scripts/generate-site-stats.mjs'], outDir);
 const started = Date.now();
-run('pnpm', ['exec', 'vite', 'build'], outDir);
+const buildOutput = runCaptured('pnpm', ['exec', 'vite', 'build'], outDir);
 console.log(`adoption-volt: vite build ${Math.round((Date.now() - started) / 1000)} s`);
+classifyBuildOutput(buildOutput);
 run('pnpm', ['exec', 'doq-search', 'index', 'dist/analog/public'], outDir);
 run(
   'node',
@@ -208,6 +221,8 @@ if (process.argv.includes('--test')) {
     env: {
       ...process.env,
       DOQ_ADOPTION_VOLT_DIR: outDir,
+      // The proof needs its own checkout and the workspace builds, not the tarball consumers of the main E2E suite.
+      E2E_SKIP_CONSUMER: '1',
       PLAYWRIGHT_BROWSERS_PATH: process.env['PLAYWRIGHT_BROWSERS_PATH'] ?? '0',
     },
   });

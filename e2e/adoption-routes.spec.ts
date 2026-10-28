@@ -169,6 +169,8 @@ test.describe('ADOPT-008 host layout, theme and scrolling', () => {
   }) => {
     await page.setViewportSize({ width: 1700, height: 500 });
     await page.goto(`${base}/docs/accessibility`);
+    // The lazy documentation region may still be swapping in right after load; read tokens only once it is there.
+    await expect(page.locator('.doq-root')).toBeVisible();
     const colors = () =>
       page.evaluate(() => [
         getComputedStyle(document.querySelector('.doq-root')!).getPropertyValue('--host-docs-background').trim(),
