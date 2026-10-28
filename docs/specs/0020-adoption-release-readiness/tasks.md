@@ -7,4 +7,4 @@
 - [x] T-005 [REQ-004, AC-004] Add the isolated `external-adoption` job to `ci-extended.yml`.
 - [x] T-006 [REQ-005, AC-005] Run the packed-package, public API, determinism, portability, compat and performance checks on the final tarball.
 - [x] T-007 [REQ-006, AC-006] Reproduce the Analog SSR status limitation and update readiness, adoption, README, changelog and site docs.
-- [ ] T-008 [REQ-007, AC-007] Raise the version to 0.12.0, rerun the gate on the versioned artifact and record the release decision.
+- [x] T-008 [REQ-007, AC-007] Raise the version to 0.12.0, rerun the gate on the versioned artifact and record the release decision.
