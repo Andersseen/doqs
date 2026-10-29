@@ -9,6 +9,9 @@ test.describe('E2E-130 reader environment', () => {
   test('reduced motion removes transitions and smooth scrolling from documentation controls', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto(installation);
+    // `goto` can return while client hydration is still adding the region class; wait for the control under test before
+    // reading its computed styles so this acceptance does not race the production hydrate on a busy runner.
+    await expect(page.locator('.doq-root')).toBeVisible();
     const durations = await page.evaluate(() => {
       const read = (selector: string) => {
         const element = document.querySelector(selector);

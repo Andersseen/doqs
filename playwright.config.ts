@@ -112,6 +112,7 @@ const server = (app: (typeof apps)[keyof typeof apps], port: number) => ({
 export default defineConfig({
   testDir: 'e2e',
   testIgnore: [
+    ...(process.env['E2E_WINDOWS_ACCEPTANCE'] ? [] : [/windows-browser\.spec/]),
     // One cell of the Angular compatibility matrix: runs against a dedicated consumer (playwright.compat.config.ts).
     /compat\.spec/,
     ...(withConsumer ? [] : [/consumer(-rich|-api|-init|-playgrounds|-zone)?\.spec/, /legacy\.spec/]),

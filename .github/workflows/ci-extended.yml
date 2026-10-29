@@ -23,9 +23,13 @@ env:
 
 jobs:
   e2e-browsers:
-    name: Playwright cross-browser (Firefox, WebKit)
+    name: Playwright cross-browser (Firefox, WebKit on Linux)
     if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'full-ci')
     runs-on: ubuntu-latest
+    # The maintained image includes the native GTK 4, Graphene and GStreamer libraries required by WebKit.
+    # Keep its tag aligned with the lockfile's @playwright/test version; the browser binaries are installed below
+    # from that exact package version and cached under node_modules.
+    container: mcr.microsoft.com/playwright:v1.64.1-noble
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
@@ -45,6 +49,36 @@ jobs:
         if: failure()
         with:
           name: playwright-traces-browsers
+          retention-days: 7
+          path: |
+            test-results
+            playwright-report
+
+  e2e-windows:
+    name: Playwright Chromium acceptance (Windows)
+    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'full-ci')
+    runs-on: windows-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - uses: ./.github/actions/playwright-browsers
+        with:
+          browsers: chromium
+      - name: Windows Chromium production browser journeys
+        run: pnpm test:e2e --skip-consumer e2e/windows-browser.spec.ts
+        env:
+          E2E_WINDOWS_ACCEPTANCE: '1'
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: playwright-traces-windows
           retention-days: 7
           path: |
             test-results

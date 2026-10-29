@@ -56,7 +56,7 @@ Component tests mock exactly one boundary: Analog's build-time content glob. Eve
 **Playwright browsers.** Install Chromium inside `node_modules` (nothing is written under `$HOME`) and run:
 
 ```sh
-PLAYWRIGHT_BROWSERS_PATH=0 pnpm exec playwright install chromium   # add --with-deps on Linux CI
+PLAYWRIGHT_BROWSERS_PATH=0 pnpm exec playwright install chromium
 pnpm build && pnpm pack:doq
 pnpm test:e2e                       # builds/reuses the tarball consumer; add --skip-consumer for a faster loop
 pnpm test:e2e e2e/toc.spec.ts       # extra arguments go to Playwright (--headed, --grep …)
@@ -72,7 +72,9 @@ PLAYWRIGHT_BROWSERS_PATH=0 pnpm exec playwright install firefox webkit   # add -
 pnpm test:e2e:browsers                                                    # or: pnpm test:e2e e2e/toc.spec.ts --project=webkit
 ```
 
-In CI the matrix is not part of every pull request (it alone took longer than the rest of the pipeline): `ci-extended.yml` runs it every Monday on `main`, on demand (Actions → CI extended → Run workflow) and on pull requests labelled `full-ci`. Add the label when a change touches engine-sensitive behavior.
+In CI the matrix is not part of every pull request (it alone took longer than the rest of the pipeline): `ci-extended.yml` runs it every Monday on `main`, on demand (Actions → CI extended → Run workflow) and on pull requests labelled `full-ci`. Linux uses the Playwright-maintained image matching the pinned `@playwright/test` version so WebKit's native libraries do not depend on a runner's apt state. Add the label when a change touches engine-sensitive behavior.
+
+The same extended workflow runs a focused Chromium browser suite on `windows-latest` against production builds. It does not claim Firefox or WebKit support on Windows. See the [manual screen-reader protocol](docs/operations/browser-and-screen-reader-verification.md) for VoiceOver/Safari and NVDA verification; axe and Playwright results are not substitutes for those sessions.
 
 Adapt a test to an engine only for a real platform limit and say why in the test: Firefox and WebKit cannot grant `clipboard-read` (`expectClipboard` in `e2e/fixtures.ts` annotates the gap), Safari's default Tab skips links (`nextFocusKey`), engines word a legitimate 404 differently (`EXPECTED_404_NOISE`). Never delete a product assertion to turn an engine green.
 
