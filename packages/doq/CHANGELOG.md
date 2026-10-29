@@ -2,7 +2,7 @@
 
 ## Unreleased — browser verification tooling
 
-- **Extended browser CI.** Linux Firefox/WebKit use the Playwright-maintained image pinned to `@playwright/test` 1.64.1, with GTK 4, Graphene and GStreamer runtime libraries and a non-root user for Firefox's sandbox. A focused production-browser Chromium suite is added for `windows-latest`. Windows acceptance passes; Linux Firefox is pending its non-root rerun, so local macOS runs do not count as Linux evidence.
+- **Extended browser CI.** Linux Firefox/WebKit use the Playwright-maintained image pinned to `@playwright/test` 1.64.1, with GTK 4, Graphene and GStreamer runtime libraries and a non-root user for Firefox's sandbox. A focused production-browser Chromium suite is added for `windows-latest`. Hosted Linux and Windows acceptance pass in CI run 43.
 - **Accessibility test stability.** The reduced-motion E2E check now waits for the hydrated documentation root before reading computed styles. Targeted keyboard, drawer, search, playground, locale and RTL checks pass; the separate initialized-consumer hydration failure recorded in spec 0021 remains under investigation. VoiceOver/Safari and NVDA/Windows remain NOT RUN; see the manual protocol.
 - **Windows test runner portability.** The production E2E launcher now invokes pnpm's JavaScript entrypoint through Node, so the Windows `.CMD` shim works with `spawnSync`; the first hosted Windows run exposed this before tests could start.
 - No package API, route, CSS token, dependency or runtime behavior changed. No version bump or publication is proposed for CI and test-harness changes alone.

@@ -7,16 +7,14 @@
 <!-- Row format: | <KIND>-NNN | AC ids | what it checks | PASS / FAIL / NOT RUN |
      KIND is UNIT, COMP, E2E, CONTRACT, SDD or MANUAL. Non-MANUAL ids must appear in a test source file. -->
 
-| Case       | Acceptance     | Checks                                                                                      | Result  |
-| ---------- | -------------- | ------------------------------------------------------------------------------------------- | ------- |
-| E2E-021    | AC-002, AC-003 | Five focused production journeys in Chromium on macOS (browser platform acceptance pending) | PASS    |
-| E2E-164    | AC-003         | Firefox/WebKit keyboard, focus, RTL, hydration and serious/critical axe journeys on macOS   | PASS    |
-| E2E-130    | AC-003         | Reduced-motion style assertions wait for the hydrated region; regression evidence below     | PASS    |
-| SDD-001    | AC-004         | `pnpm sdd:check`; read-only permissions and fixed workflow timeouts                         | PASS    |
-| MANUAL-003 | AC-001, AC-004 | Hosted Linux Firefox/WebKit job on the Playwright image                                     | NOT RUN |
-| MANUAL-004 | AC-002, AC-004 | Hosted Windows Chromium extended job                                                        | NOT RUN |
-| MANUAL-001 | AC-005         | VoiceOver and Safari protocol/session                                                       | NOT RUN |
-| MANUAL-002 | AC-005         | NVDA and supported Windows browser protocol/session                                         | NOT RUN |
+| Case       | Acceptance     | Checks                                                                                                        | Result  |
+| ---------- | -------------- | ------------------------------------------------------------------------------------------------------------- | ------- |
+| E2E-021    | AC-002, AC-003 | Five focused production journeys in macOS Chrome and hosted Windows Chromium                                  | PASS    |
+| E2E-164    | AC-001, AC-003 | Firefox/WebKit keyboard, focus, RTL, hydration and axe journeys on macOS and in hosted Linux Playwright image | PASS    |
+| E2E-130    | AC-003         | Reduced-motion style assertions wait for the hydrated region; regression evidence below                       | PASS    |
+| SDD-001    | AC-004         | `pnpm sdd:check`; read-only permissions and fixed workflow timeouts                                           | PASS    |
+| MANUAL-001 | AC-005         | VoiceOver and Safari protocol/session                                                                         | NOT RUN |
+| MANUAL-002 | AC-005         | NVDA and supported Windows browser protocol/session                                                           | NOT RUN |
 
 ## Executed commands
 
@@ -28,7 +26,7 @@ Baseline: `git fetch origin --prune --tags` PASS. `origin/main` was `dd636dc7ecf
 
 The first hosted Windows run built the package and installed Chromium, then exited before Playwright printed its runner output. The cause was `scripts/e2e.ts` spawning the `pnpm` `.CMD` shim with Node's non-shell `spawnSync`. It now invokes pnpm's `npm_execpath` through `process.execPath`; all five journeys pass on the refreshed hosted Windows runner.
 
-The Linux image launched WebKit and passed 170 journeys, but Firefox could not launch because the job container ran as root and `CanCreateUserNamespace()` returned EPERM (171 Firefox failures). The container now runs as UID 1001, matching Playwright's maintained image CI usage; Linux rerun is pending.
+The first Linux image run launched WebKit and passed 170 journeys, but Firefox could not launch because the job container ran as root and `CanCreateUserNamespace()` returned EPERM (171 Firefox launch failures). The container now runs as UID 1001, matching Playwright's maintained image CI usage. The final hosted run passes 341 Firefox/WebKit journeys (one skipped) in 5.1 minutes.
 
 The first `PW_CHANNEL=chrome pnpm quality:gate` reached full Chromium E2E (253 passed, 1 failed): the existing reduced-motion test evaluated `.doq-root` before hydration added it. The failure was captured in `test-results/hardening-E2E-130-reader-e-9f907-from-documentation-controls-chromium/error-context.md`; the test now waits for the root to be visible before reading computed styles, and `PW_CHANNEL=chrome pnpm test:e2e --skip-consumer e2e/hardening.spec.ts` passes (7/7).
 
@@ -42,4 +40,6 @@ Pinned adoption: `PW_CHANNEL=chrome pnpm verify:adoption` PASS (26/26); the firs
 
 `MVP_CONSUMER_ROOT=/private/var/folders/ts/f4hpy9v97b5gj4llxm_wl55r0000gn/T/doq-e2e-consumer/dist/analog/public pnpm verify:mvp` PASS (17/0) when run with loopback binding permission. Two earlier attempts without that permission timed out waiting for the local preview server; they were sandbox failures, not product results.
 
-Maintainer-hosted Windows and Linux CI have not run; local macOS results cannot prove those platforms. The Linux WebKit failure recorded during #37 lacked GTK 4, Graphene and GStreamer runtime libraries; the matching Playwright-maintained image supplies those libraries. VoiceOver/NVDA remain NOT RUN; automated axe/Playwright checks do not replace those sessions. No 0.13 version bump is justified until hosted browser checks pass and a package-level compatibility improvement is verified. No publication, tag or deploy was made.
+Hosted final commit (`6c09a1e`) checks: standard CI run 97 PASS, including full Chromium E2E, MVP/CDP, Angular 21/22 compatibility, determinism, contracts and Windows tooling. Extended CI run 43 PASS: Windows Chromium 5/5; Linux Firefox/WebKit 341 passed, 1 skipped; pinned adoption proofs all passed (Angular Movement onboarding, routes, integrated checkout and Volt UI 18/18).
+
+Hosted Windows Chromium and Linux Firefox/WebKit checks pass. VoiceOver/NVDA remain NOT RUN; automated axe/Playwright checks do not replace those sessions. No package version bump is justified for CI and test-harness changes alone. No publication, tag or deploy was made.

@@ -7,4 +7,4 @@
 - [x] T-003 [REQ-003, REQ-004, AC-003] Audit existing journeys and axe states; add only missing regressions, confirm failures before fixes, and implement minimal UI corrections.
 - [x] T-004 [REQ-005, AC-004] Verify permissions, caching, timeouts and the current CI performance budget.
 - [x] T-005 [REQ-006, AC-005] Document platform evidence, manual VoiceOver/NVDA protocol, release decision and remaining 1.0 blockers.
-- [ ] T-006 [REQ-001, REQ-002, REQ-003, REQ-005, AC-001, AC-002, AC-004] Run local supported checks, trigger extended GitHub Actions, inspect results, and record exact evidence and unavailable checks.
+- [x] T-006 [REQ-001, REQ-002, REQ-003, REQ-005, AC-001, AC-002, AC-004] Run local supported checks, trigger extended GitHub Actions, inspect results, and record exact evidence and unavailable checks.
