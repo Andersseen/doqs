@@ -29,7 +29,10 @@ jobs:
     # The maintained image includes the native GTK 4, Graphene and GStreamer libraries required by WebKit.
     # Keep its tag aligned with the lockfile's @playwright/test version; the browser binaries are installed below
     # from that exact package version and cached under node_modules.
-    container: mcr.microsoft.com/playwright:v1.64.1-noble
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
+      # Firefox's content sandbox needs a non-root user so it can create its user namespace.
+      options: --user 1001
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7

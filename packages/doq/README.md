@@ -30,7 +30,7 @@ This README is deliberately short. The guides live in the official documentation
 | `pagefind` (search only, optional) | `^1.5.0` |
 | `typescript` (API generation only, optional) | `^5.5.0 \|\| ^6.0.0` |
 
-Verified: Angular 21.2 with TypeScript 5.9 and Angular 22.2 with TypeScript 6.0, both with Analog 2.9 and zoneless change detection; Chromium, Firefox and WebKit. Zone.js: an Angular 21 application with `zone.js` and `provideZoneChangeDetection()` passes the consumer journey (not tested on Angular 22). Node tooling is smoke-tested on Windows in CI; focused Windows Chromium browser acceptance is pending hosted CI in spec 0021. Screen-reader output and WCAG conformance are not verified. Peer ranges are not widened without testing; `doq doctor` checks the versions installed in your project against them.
+Verified: Angular 21.2 with TypeScript 5.9 and Angular 22.2 with TypeScript 6.0, both with Analog 2.9 and zoneless change detection; Chromium, Firefox and WebKit. Zone.js: an Angular 21 application with `zone.js` and `provideZoneChangeDetection()` passes the consumer journey (not tested on Angular 22). Node tooling and focused Chromium browser journeys pass on Windows in CI (spec 0021). Screen-reader output and WCAG conformance are not verified. Peer ranges are not widened without testing; `doq doctor` checks the versions installed in your project against them.
 
 ## Installation
 

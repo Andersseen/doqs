@@ -26,7 +26,9 @@ Baseline: `git fetch origin --prune --tags` PASS. `origin/main` was `dd636dc7ecf
 
 `E2E_WINDOWS_ACCEPTANCE=1 PW_CHANNEL=chrome pnpm test:e2e --skip-consumer e2e/windows-browser.spec.ts` PASS (5/5) on macOS Chrome; this is not Windows evidence. `PW_CHANNEL=chrome pnpm test:e2e:browsers --skip-consumer` PASS (319 passed, 7 skipped) on macOS in 1.5 minutes. Axe serious/critical checks ran as part of these suites.
 
-The first hosted Windows run built the package and installed Chromium, then exited before Playwright printed its runner output. The cause was `scripts/e2e.ts` spawning the `pnpm` `.CMD` shim with Node's non-shell `spawnSync`. It now invokes pnpm's `npm_execpath` through `process.execPath`; the same five journeys pass locally after that change. Hosted rerun is pending.
+The first hosted Windows run built the package and installed Chromium, then exited before Playwright printed its runner output. The cause was `scripts/e2e.ts` spawning the `pnpm` `.CMD` shim with Node's non-shell `spawnSync`. It now invokes pnpm's `npm_execpath` through `process.execPath`; all five journeys pass on the refreshed hosted Windows runner.
+
+The Linux image launched WebKit and passed 170 journeys, but Firefox could not launch because the job container ran as root and `CanCreateUserNamespace()` returned EPERM (171 Firefox failures). The container now runs as UID 1001, matching Playwright's maintained image CI usage; Linux rerun is pending.
 
 The first `PW_CHANNEL=chrome pnpm quality:gate` reached full Chromium E2E (253 passed, 1 failed): the existing reduced-motion test evaluated `.doq-root` before hydration added it. The failure was captured in `test-results/hardening-E2E-130-reader-e-9f907-from-documentation-controls-chromium/error-context.md`; the test now waits for the root to be visible before reading computed styles, and `PW_CHANNEL=chrome pnpm test:e2e --skip-consumer e2e/hardening.spec.ts` passes (7/7).
 
