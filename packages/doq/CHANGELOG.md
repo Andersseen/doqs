@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — browser verification tooling
+
+- **Extended browser CI.** Linux Firefox/WebKit use the Playwright-maintained image pinned to `@playwright/test` 1.64.1, with GTK 4, Graphene and GStreamer runtime libraries and a non-root user for Firefox's sandbox. A focused production-browser Chromium suite is added for `windows-latest`. Hosted Linux and Windows acceptance pass in CI run 43.
+- **Accessibility test stability.** The reduced-motion E2E check now waits for the hydrated documentation root before reading computed styles. Targeted keyboard, drawer, search, playground, locale and RTL checks pass; the separate initialized-consumer hydration failure recorded in spec 0021 remains under investigation. VoiceOver/Safari and NVDA/Windows remain NOT RUN; see the manual protocol.
+- **Windows test runner portability.** The production E2E launcher now invokes pnpm's JavaScript entrypoint through Node, so the Windows `.CMD` shim works with `spawnSync`; the first hosted Windows run exposed this before tests could start.
+- No package API, route, CSS token, dependency or runtime behavior changed. No version bump or publication is proposed for CI and test-harness changes alone.
+
 ## 0.12.0
 
 Multilingual documentation, accepted in production builds. Additive: no exported type, function, configuration key, frontmatter key, route or `--host-docs-*` token was removed or changed (`pnpm verify:public-api` passes against the 0.7 baseline). The release is driven by the existing workflow after merge; nothing is published by hand.
@@ -17,7 +24,7 @@ Multilingual documentation, accepted in production builds. Additive: no exported
 ### Added and fixed
 
 #### Added
-- **Multilingual production fixture.** Showcase A now exercises isolated English, Spanish and Arabic documentation catalogs, a Spanish archive, a route-derived signal adapter and real Pagefind filtering. Production verification and the 0.12 release remain pending.
+- **Multilingual production fixture.** Showcase A exercises isolated English, Spanish and Arabic documentation catalogs, a Spanish archive, a route-derived signal adapter and real Pagefind filtering. Production acceptance is recorded in spec 0019; 0.12.0 was published through the release workflow.
 
 - **Playground localization.** Playground-owned controls, validation feedback, copy states, dialog labels and live announcements now use the existing `DOQ_DEFAULT_MESSAGES` adapter contract, so a host can translate the complete interactive surface without translating consumer-owned labels or code.
 - **Explicit route ownership.** `DoqI18nAdapter.ownsRouting` lets a host state that it owns localized route composition independently of the number of locales configured for Doqs.
