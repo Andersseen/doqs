@@ -12,7 +12,7 @@
   "engines": { "node": "^20.19.0 || ^22.12.0 || >=24.0.0" },
   "publishConfig": { "access": "public" },
   "peerDependencies": {
-    "@analogjs/content": "^2.9.0",
+    "@analogjs/content": "^2.9.2",
     "@angular/common": "^21.2.2 || ^22.0.0",
     "@angular/core": "^21.2.2 || ^22.0.0",
     "@angular/platform-browser": "^21.2.2 || ^22.0.0",
@@ -42,8 +42,8 @@
     "test:components": "vitest run -c vitest.components.config.ts"
   },
   "devDependencies": {
-    "@analogjs/content": "^2.9.0",
-    "@analogjs/vite-plugin-angular": "^2.9.0",
+    "@analogjs/content": "^2.9.2",
+    "@analogjs/vite-plugin-angular": "^2.9.2",
     "@angular/common": "^21.2.2",
     "@angular/compiler": "^21.2.2",
     "@angular/compiler-cli": "^21.2.2",
