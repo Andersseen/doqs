@@ -101,7 +101,14 @@ if (!skipConsumer) {
   }
 }
 
-const status = run('pnpm', ['exec', 'playwright', 'test', ...passthrough], {
+// Calling the pnpm shim through spawnSync fails on Windows because the shim is a .CMD file
+// and spawnSync does not use a shell. pnpm sets npm_execpath to its JS entrypoint for scripts.
+const pnpmEntrypoint = process.env['npm_execpath'];
+if (!pnpmEntrypoint) {
+  console.error('e2e: npm_execpath is unavailable; run this command through pnpm.');
+  process.exit(1);
+}
+const status = run(process.execPath, [pnpmEntrypoint, 'exec', 'playwright', 'test', ...passthrough], {
   PLAYWRIGHT_BROWSERS_PATH: process.env['PLAYWRIGHT_BROWSERS_PATH'] ?? '0',
   DOQ_CONSUMER_DIR: consumers[0]!.dir,
   DOQ_CONSUMER_A_DIR: consumers[1]!.dir,

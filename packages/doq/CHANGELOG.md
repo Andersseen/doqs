@@ -4,6 +4,7 @@
 
 - **Extended browser CI.** Linux Firefox/WebKit now use the Playwright-maintained image pinned to `@playwright/test` 1.64.1, supplying WebKit's GTK 4, Graphene and GStreamer runtime libraries without apt installs. A focused production-browser Chromium suite is added for `windows-latest`. Hosted results remain pending; local macOS runs do not count as Linux or Windows evidence.
 - **Accessibility test stability.** The reduced-motion E2E check now waits for the hydrated documentation root before reading computed styles. Targeted keyboard, drawer, search, playground, locale and RTL checks pass; the separate initialized-consumer hydration failure recorded in spec 0021 remains under investigation. VoiceOver/Safari and NVDA/Windows remain NOT RUN; see the manual protocol.
+- **Windows test runner portability.** The production E2E launcher now invokes pnpm's JavaScript entrypoint through Node, so the Windows `.CMD` shim works with `spawnSync`; the first hosted Windows run exposed this before tests could start.
 - No package API, route, CSS token, dependency or runtime behavior changed. No version bump or publication is proposed for CI and test-harness changes alone.
 
 ## 0.12.0
