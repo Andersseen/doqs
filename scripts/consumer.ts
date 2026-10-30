@@ -21,6 +21,7 @@ import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import { writeDocsFixture } from './fixtures/docs.ts';
+import { assertAotBuild } from './aot-guard.ts';
 
 const repo = resolve(import.meta.dirname, '..');
 const flags = process.argv.slice(2).filter((arg) => arg.startsWith('--'));
@@ -210,7 +211,10 @@ const pnpm = (args: string[], expected = 0) => {
 };
 pnpm(['install', ...(angular ? ['--config.strict-peer-dependencies=true'] : [])]);
 if (skipApi) {
-  if (!flags.includes('--no-build')) pnpm(['build']);
+  if (!flags.includes('--no-build')) {
+    pnpm(['build']);
+    assertAotBuild('consumer', outDir);
+  }
   console.log(`consumer ready: ${resolve(outDir, 'dist/analog/public')}`);
   process.exit(0);
 }
@@ -250,4 +254,5 @@ if (!noAuthoring) {
 }
 
 pnpm(['build']);
+assertAotBuild('consumer', outDir);
 console.log(`consumer ready: ${resolve(outDir, 'dist/analog/public')}`);

@@ -1,6 +1,6 @@
 {
   "name": "@doqs/analog",
-  "version": "0.12.0",
+  "version": "0.13.0",
   "description": "Composable Markdown documentation UI for Analog.js",
   "license": "MIT",
   "author": "Andersseen (https://github.com/Andersseen)",

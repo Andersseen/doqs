@@ -44,3 +44,9 @@ The output folder is outside the content folder, contains files `doq-api` did no
 ## Peer version failures
 
 Doctor compares the installed Angular, RxJS and other peers with the ranges `@doqs/analog` declares. Install versions inside the range, or see [compatibility](/docs/reference/migration-and-compatibility).
+
+## The page shows but is not interactive: `JIT compiler unavailable`
+
+The build succeeded and the static HTML is correct, but in the browser the console shows `ERROR Error: JIT compiler unavailable` and the page does not hydrate. A component of the application was emitted with plain decorators instead of compiled ahead of time, so Angular would need a compiler that a production bundle (rightly) does not contain. `doq doctor --build` reports it as `Browser bundles compiled ahead of time`.
+
+This is an intermittent defect of `@analogjs/vite-plugin-angular` (observed on 2.9.0, 2.9.1 and 2.9.2, with and without Doqs): the client and server builds run at the same time and share compilation output that the first one to finish clears, so a module transformed afterwards is skipped without a warning. It depends on timing and machine load, and the Doqs components are not the ones affected. Delete `dist` and run the build again; do not add `@angular/compiler` to the application to silence it. In CI, run `pnpm exec doq doctor --build` after the build so the build fails instead of shipping.

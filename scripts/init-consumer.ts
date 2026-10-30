@@ -3,9 +3,11 @@
  * tarball, `doq doctor` reports the real gaps, `doq init` scaffolds, the printed snippets are applied the way a developer would,
  * `doq doctor` then passes, and a production build prerenders and indexes the documentation.
  *
- *   node scripts/init-consumer.ts [tarball] [outDir] [--mode=embedded|docs-first] [--angular=21|22]
+ *   node scripts/init-consumer.ts [tarball] [outDir] [--mode=embedded|docs-first] [--angular=21|22] [--analog=<version>]
  *
  * outDir defaults to $DOQ_INIT_CONSUMER_DIR or <tmp>/doq-init-consumer-<mode>[-ng22]. No workspace links, no repository sources.
+ * --analog=<version> pins the Analog packages exactly (diagnostics only; strict peers are relaxed because the pin may
+ * be older than the range Doqs supports).
  */
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
@@ -21,6 +23,9 @@ const mode = flag('mode') ?? 'embedded';
 const angular = flag('angular') ?? '21';
 if (mode !== 'embedded' && mode !== 'docs-first') throw new Error(`Unknown --mode=${mode}`);
 if (angular !== '21' && angular !== '22') throw new Error(`Unknown --angular=${angular}`);
+const analog = flag('analog');
+if (analog !== undefined && !/^\d+\.\d+\.\d+$/.test(analog)) throw new Error(`Unknown --analog=${analog}`);
+const analogRange = analog ?? '^2.9.2';
 const { version } = JSON.parse(await readFile(resolve(repo, 'packages/doq/package.json'), 'utf8')) as {
   version: string;
 };
@@ -28,7 +33,7 @@ const tarball = resolve(positional[0] ?? `artifacts/doqs-analog-${version}.tgz`)
 const outDir = resolve(
   positional[1] ??
     process.env['DOQ_INIT_CONSUMER_DIR'] ??
-    resolve(tmpdir(), `doq-init-consumer-${mode}${angular === '22' ? '-ng22' : ''}`),
+    resolve(tmpdir(), `doq-init-consumer-${mode}${angular === '22' ? '-ng22' : ''}${analog ? `-analog${analog}` : ''}`),
 );
 if (outDir === repo || outDir.startsWith(`${repo}/`))
   throw new Error(`The consumer must live outside the repository: ${outDir}`);
@@ -41,16 +46,16 @@ const write = async (path: string, text: string) => {
   await writeFile(resolve(outDir, path), text);
 };
 const read = (path: string) => readFile(resolve(outDir, path), 'utf8');
-const run = (command: string, args: string[], expected: number | undefined = 0) => {
+const run = (command: string, args: string[], expected: number | null = 0) => {
   console.log(`init-consumer: ${command} ${args.join(' ')}`);
   const result = spawnSync(command, args, { cwd: outDir, encoding: 'utf8', env: { ...process.env, CI: 'true' } });
-  if (expected !== undefined && result.status !== expected) {
+  if (expected !== null && result.status !== expected) {
     console.error(result.stdout, result.stderr);
     throw new Error(`"${command} ${args.join(' ')}" exited ${result.status}, expected ${expected}`);
   }
   return result;
 };
-const json = (args: string[], expected?: number) => {
+const json = (args: string[], expected: number | null = 0) => {
   const result = run('pnpm', ['--silent', 'exec', 'doq', ...args, '--json'], expected);
   return JSON.parse(result.stdout) as any;
 };
@@ -137,7 +142,7 @@ await write(
       type: 'module',
       scripts: { build: 'vite build' },
       dependencies: {
-        '@analogjs/router': '^2.9.0',
+        '@analogjs/router': analogRange,
         '@angular/common': ng('^21.2.2'),
         '@angular/compiler': ng('^21.2.2'),
         '@angular/core': ng('^21.2.2'),
@@ -158,8 +163,8 @@ await write(
         },
       },
       devDependencies: {
-        '@analogjs/platform': '^2.9.0',
-        '@analogjs/vite-plugin-angular': '^2.9.0',
+        '@analogjs/platform': analogRange,
+        '@analogjs/vite-plugin-angular': analogRange,
         '@angular/build': ng('^21.2.2'),
         '@angular/cli': ng('^21.2.2'),
         '@angular/compiler-cli': ng('^21.2.2'),
@@ -171,11 +176,17 @@ await write(
     2,
   )}\n`,
 );
-const peerFlag = ['--config.strict-peer-dependencies=true'];
+const peerFlag = analog ? [] : ['--config.strict-peer-dependencies=true'];
 run('pnpm', ['install', ...peerFlag]);
 
 // 2. Install Doqs exactly as the documentation says, from the packed tarball.
-run('pnpm', ['add', `@doqs/analog@file:${tarball}`, '@analogjs/content', 'prismjs', ...peerFlag]);
+run('pnpm', [
+  'add',
+  `@doqs/analog@file:${tarball}`,
+  analog ? `@analogjs/content@${analog}` : '@analogjs/content',
+  'prismjs',
+  ...peerFlag,
+]);
 assert.match(
   (await run('pnpm', ['--silent', 'exec', 'doq', '--version'])).stdout.trim(),
   new RegExp(`^${version.replace(/\./g, '\\.')}$`),
@@ -261,21 +272,17 @@ await write('src/app/app.config.ts', appConfig);
 console.log(`init-consumer: applied snippets\n${vite}\n${appConfig}`);
 
 // 6. Doctor passes everything it can establish; init reports the integration complete.
-const after = json(['doctor']);
-assert.equal(
-  after.summary.FAIL,
-  0,
-  JSON.stringify(
-    after.findings.filter((item: any) => item.status === 'FAIL'),
-    null,
-    2,
-  ),
+// A pinned (older) Analog is a diagnostic: doctor correctly fails its peer check, and nothing else may fail.
+const after = json(['doctor'], analog ? null : 0);
+const afterFailures = after.findings.filter(
+  (item: any) => item.status === 'FAIL' && !(analog && String(item.id).startsWith('peer.')),
 );
+assert.equal(afterFailures.length, 0, JSON.stringify(afterFailures, null, 2));
 assert.equal(after.findings.find((item: any) => item.id === 'setup.deterministic')?.status, 'PASS');
 assert.equal(json(['init', ...modeArgs]).integration, 'complete');
 
 // 7. A production build, then the output checks.
 run('pnpm', ['build']);
-const built = json(['doctor', '--build'], 0);
+const built = json(['doctor', '--build'], analog ? null : 0);
 assert.equal(built.findings.find((item: any) => item.id === 'build.routes')?.status, 'PASS');
 console.log(`init-consumer ready (${mode}, Angular ${angular}): ${resolve(outDir, 'dist/analog/public')}`);

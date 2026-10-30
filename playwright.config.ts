@@ -42,6 +42,14 @@ export const apps = {
       'dist/analog/public',
     ),
   },
+  // The same embedded application on Angular 22 (`init-consumer.ts --angular=22`).
+  initEmbeddedNg22: {
+    url: 'http://127.0.0.1:4288',
+    root: resolve(
+      process.env.DOQ_INIT_EMBEDDED_NG22_DIR ?? resolve(tmpdir(), 'doq-init-consumer-embedded-ng22'),
+      'dist/analog/public',
+    ),
+  },
   initDocsFirst: {
     url: 'http://127.0.0.1:4283',
     root: resolve(
@@ -159,6 +167,7 @@ export default defineConfig({
           server(apps.consumerZone, 4285),
           server(apps.initEmbedded, 4282),
           server(apps.initDocsFirst, 4283),
+          server(apps.initEmbeddedNg22, 4288),
         ]
       : []),
     ...(withAdoption ? [server(apps.adoption, 4278)] : []),

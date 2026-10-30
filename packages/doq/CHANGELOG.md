@@ -1,11 +1,31 @@
 # Changelog
 
-## Unreleased — browser verification tooling
+## 0.13.0
 
-- **Extended browser CI.** Linux Firefox/WebKit use the Playwright-maintained image pinned to `@playwright/test` 1.64.1, with GTK 4, Graphene and GStreamer runtime libraries and a non-root user for Firefox's sandbox. A focused production-browser Chromium suite is added for `windows-latest`. Hosted Linux and Windows acceptance pass in CI run 43.
-- **Accessibility test stability.** The reduced-motion E2E check now waits for the hydrated documentation root before reading computed styles. Targeted keyboard, drawer, search, playground, locale and RTL checks pass; the separate initialized-consumer hydration failure recorded in spec 0021 remains under investigation. VoiceOver/Safari and NVDA/Windows remain NOT RUN; see the manual protocol.
-- **Windows test runner portability.** The production E2E launcher now invokes pnpm's JavaScript entrypoint through Node, so the Windows `.CMD` shim works with `spawnSync`; the first hosted Windows run exposed this before tests could start.
-- No package API, route, CSS token, dependency or runtime behavior changed. No version bump or publication is proposed for CI and test-harness changes alone.
+Production hydration and onboarding reliability. Additive: no exported type, function, configuration key, frontmatter key, route or `--host-docs-*` token was removed or changed (`pnpm verify:public-api` passes against the 0.7 baseline; the report differs only in its version). The release is driven by the existing workflow after merge; nothing is published by hand. Verified against Angular 21.2.25 and 22 with `@analogjs/*` 2.9.2 (peer range unchanged: `@analogjs/content` `^2.9.2`).
+
+### Highlights
+
+- **`doq doctor --build` no longer passes a build that cannot hydrate.** A new `build.aot` finding reads the built scripts and fails when a bundle contains Angular's `JIT compiler unavailable` path without the compiler (a component left uncompiled), warns when the runtime compiler is bundled on purpose, and passes otherwise. Spec 0021 recorded an initialized consumer whose build and `doq doctor --build` succeeded and whose pages then never hydrated; both reported success.
+- **The cause is upstream and still open.** `@analogjs/vite-plugin-angular` (2.9.0, 2.9.1 and 2.9.2, with or without Doqs) shares one compilation-output map between the concurrently running client and SSR builds and clears it when the first finishes; a module the other environment transforms afterwards is emitted with plain decorators, with exit code 0 and no warning. It is intermittent under load (2–3 of 24 parallel builds in the measured setups, none of 30 for a lighter Doqs-free host) and can be forced deterministically. Doqs does not work around it: rerun the build when `build.aot` fails. See `docs/specs/0022-production-hydration-reliability/`.
+- **Initialized consumers are verified in a real browser.** The packed-tarball journeys now cover Angular 21 embedded, Angular 21 docs-first and Angular 22 embedded: hydration markers consumed, one application root and `<h1>`, client-side navigation, Back/Forward, no Pagefind request with search off, and no browser error or warning. `doq init` succeeding, `doq doctor` passing and `vite build` exiting 0 are three different claims from "the page hydrates".
+
+### Added and fixed
+
+#### Added
+
+- **`build.aot`** in `doq doctor --build` (text and `--json`), Node-only and read-only like the rest of the CLI.
+
+#### Known limitation recorded
+
+- **Documentation pages re-render instead of hydrating in place.** The prerendered `<main class="doq-root">` of a documentation page is discarded and rendered again on the client: the Markdown module is imported asynchronously, so the first client render is the loading placeholder. Markers are consumed and the final DOM is correct, but the prerendered content is replaced (no console message in production). Host pages and the documentation index reuse their nodes. Resolving the document before the component is created is a separate change, tracked as a 1.0 readiness item.
+
+#### Repository tooling (not part of the package)
+
+- `scripts/init-consumer.ts --analog=<version>` builds a consumer against an exactly pinned Analog for diagnostics; `scripts/aot-guard.ts` stops `consumer.ts`, `adoption.ts`, `adoption-routes.ts` and `adoption-volt.ts` when a build they produced is not AOT-compiled.
+- **Extended browser CI.** Linux Firefox/WebKit use the Playwright-maintained image pinned to `@playwright/test` 1.64.1, with GTK 4, Graphene and GStreamer runtime libraries and a non-root user for Firefox's sandbox. A focused production-browser Chromium suite runs on `windows-latest`. Hosted Linux and Windows acceptance passed in CI run 43.
+- **Accessibility test stability.** The reduced-motion E2E check waits for the hydrated documentation root before reading computed styles. VoiceOver/Safari and NVDA/Windows remain NOT RUN; see the manual protocol.
+- **Windows test runner portability.** The production E2E launcher invokes pnpm's JavaScript entrypoint through Node, so the Windows `.CMD` shim works with `spawnSync`.
 
 ## 0.12.0
 

@@ -66,6 +66,11 @@ const initConsumers = [
     mode: 'docs-first',
     dir: resolve(process.env['DOQ_INIT_DOCS_FIRST_DIR'] ?? resolve(tmpdir(), 'doq-init-consumer-docs-first')),
   },
+  {
+    mode: 'embedded',
+    angular: '22',
+    dir: resolve(process.env['DOQ_INIT_EMBEDDED_NG22_DIR'] ?? resolve(tmpdir(), 'doq-init-consumer-embedded-ng22')),
+  },
 ];
 if (!skipConsumer) {
   const { version } = JSON.parse(await readFile(resolve(repo, 'packages/doq/package.json'), 'utf8')) as {
@@ -95,7 +100,13 @@ if (!skipConsumer) {
   for (const consumer of initConsumers) {
     const builtTime = await mtime(resolve(consumer.dir, 'dist/analog/public/index.html'));
     if (builtTime === undefined || builtTime < tarballTime) {
-      const status = run('node', ['scripts/init-consumer.ts', tarball, consumer.dir, `--mode=${consumer.mode}`]);
+      const status = run('node', [
+        'scripts/init-consumer.ts',
+        tarball,
+        consumer.dir,
+        `--mode=${consumer.mode}`,
+        ...('angular' in consumer ? [`--angular=${consumer.angular}`] : []),
+      ]);
       if (status !== 0) process.exit(status);
     }
   }
@@ -115,6 +126,9 @@ const status = run(process.execPath, [pnpmEntrypoint, 'exec', 'playwright', 'tes
   DOQ_CONSUMER_LEGACY_A_DIR: consumers[2]!.dir,
   DOQ_CONSUMER_LEGACY_B_DIR: consumers[3]!.dir,
   DOQ_CONSUMER_ZONE_DIR: consumers[4]!.dir,
+  DOQ_INIT_EMBEDDED_DIR: initConsumers[0]!.dir,
+  DOQ_INIT_DOCS_FIRST_DIR: initConsumers[1]!.dir,
+  DOQ_INIT_EMBEDDED_NG22_DIR: initConsumers[2]!.dir,
   ...(skipConsumer ? { E2E_SKIP_CONSUMER: '1' } : {}),
 });
 process.exit(status);

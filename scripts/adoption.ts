@@ -12,6 +12,7 @@ import { spawnSync } from 'node:child_process';
 import { cp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
+import { assertAotBuild } from './aot-guard.ts';
 import {
   assertDisposable,
   checkout,
@@ -44,7 +45,8 @@ const sha = await checkout('adoption', source, outDir);
 // report the real gaps, scaffold a SEPARATE documentation region (/handbook; the host's /docs and /demos stay untouched) with
 // `doq init`, and prove that the dry run writes nothing and that nothing outside the region is touched.
 run('pnpm', ['install', '--ignore-scripts', '--no-frozen-lockfile'], outDir);
-run('pnpm', ['add', `file:${tarball}`, 'pagefind@1.5.2', '--ignore-scripts'], outDir);
+// The pinned revision predates the Analog 2.9.2 peer floor (PR #30); doctor's own fix for the failing peer check is to upgrade it.
+run('pnpm', ['add', `file:${tarball}`, '@analogjs/content@^2.9.2', 'pagefind@1.5.2', '--ignore-scripts'], outDir);
 const doq = (cliArgs: string[], expected: number) => {
   const result = spawnSync('pnpm', ['--silent', 'exec', 'doq', ...cliArgs, '--json'], {
     cwd: outDir,
@@ -301,6 +303,7 @@ expectStatus('content check after restoring the source', content('check').status
 // prerendered handbook page with a strictly sequential render of that page and validates routes, TOC fragments and links; there
 // is no retry loop. The disposable checkout is built exactly once.
 run('pnpm', ['run', 'build'], outDir);
+assertAotBuild('adoption', outDir);
 // Angular Movement prerenders only a few of its own routes, so links to its other pages are not the handbook's to validate.
 run(
   'node',
