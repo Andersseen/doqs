@@ -73,7 +73,10 @@ Each finding says what was checked, what was found, why it matters, how to fix i
 | Configuration | `doq.paths.ts`, `contentDirectory`, `basePath`, content folder, frontmatter, duplicate and invalid slugs, version archives |
 | Wiring | Doqs providers and routes, the Markdown renderer, the stylesheet, prerender routes, the highlighter, the deterministic plugin |
 | Search | Only when search is enabled: `pagefind` installed, and an indexing step in `package.json` |
-| Output (`--build`) | Static HTML for every documentation route, and the Pagefind bundle |
+| Output (`--build`) | Static HTML for every documentation route, the Pagefind bundle, and that no browser script depends on the Angular JIT compiler it does not contain (`build.aot`) |
+
+> [!NOTE]
+> Three different things can be true of a new integration: `doq init` succeeded (files were written), `vite build` exited `0` (a bundle was produced), and the page hydrates in a browser. Static HTML and a green build prove only the first two. `doq doctor --build` reads the built scripts so a build that cannot run is not reported as passing; opening the pages in a browser (or an end-to-end test) remains the proof of the third.
 
 > [!IMPORTANT]
 > Doctor does not execute your project. When a value is computed rather than written as a literal, the result is `UNKNOWN` ("check manually"), never a guessed `PASS`. `--build` inspects an existing build; it never starts one.

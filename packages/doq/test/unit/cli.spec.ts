@@ -355,6 +355,29 @@ describe('UNIT-074 doq doctor', () => {
     expect(status(await runDoctor(doctorOptions({ build: true })), 'build.routes')).toBe('PASS');
   });
 
+  it('does not call a build that cannot hydrate a pass (build.aot)', async () => {
+    await healthy();
+    const out = 'dist/analog/public';
+    await write(`${out}/docs/introduction/index.html`, '<html></html>');
+    await write(`${out}/docs/getting-started/index.html`, '<html></html>');
+    await write(`${out}/assets/index-ok.js`, 'export const ok = () => 1;');
+    await write(`${out}/pagefind/pagefind.js`, 'throw Error(`JIT compiler unavailable`)');
+    const clean = await runDoctor(doctorOptions({ build: true }));
+    expect(status(clean, 'build.aot')).toBe('PASS');
+    expect(clean.exitCode).toBe(0);
+
+    // An application chunk that kept decorator output: Angular's runtime throws when it is created in the browser.
+    await write(`${out}/assets/index-bad.js`, 'function rc(){throw Error(`JIT compiler unavailable`)}');
+    const broken = await runDoctor(doctorOptions({ build: true }));
+    expect(status(broken, 'build.aot')).toBe('FAIL');
+    expect(broken.findings.find(item => item.id === 'build.aot')?.found).toContain('assets/index-bad.js');
+    expect(broken.exitCode).toBe(1);
+
+    // The compiler is bundled on purpose: components work, but the weight is reported.
+    await write(`${out}/assets/index-bad.js`, 'function rc(){throw Error(`JIT compiler unavailable`)}n.ɵcompilerFacade=new X');
+    expect(status(await runDoctor(doctorOptions({ build: true })), 'build.aot')).toBe('WARN');
+  });
+
   it('fails clearly outside a project', async () => {
     await rm(join(root, 'package.json'));
     const result = await runDoctor(doctorOptions());

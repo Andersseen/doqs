@@ -1,6 +1,6 @@
 {
   "$comment": "Stability tier of every export of the packed package. Enforced by packages/doq/test/unit/public-api-stability.spec.ts against public-api.report.json. stable: SemVer-covered at 1.0. advanced: supported and documented, may gain members. internal: exported only because Doqs entries or tests need it; no guarantee. deprecated: still works, scheduled for removal only in a major after 1.0.",
-  "version": "0.12.0",
+  "version": "0.13.0",
   "importPaths": {
     "@doqs/analog": "Angular UI and routing; also re-exports everything from /config",
     "@doqs/analog/config": "Preferred for configuration-only imports (defineDoqConfig, provideDoq, doqPrerenderRoutes, types); no UI components",

@@ -18,6 +18,50 @@ export async function expectClipboard(page: Page, expected: string): Promise<voi
   }
 }
 
+/**
+ * Records, from before the first script runs, every element the page removes from the document that a prerendered page
+ * is made of. Hydration reuses the server-rendered nodes; an application that fails to hydrate (or hydrates by destroying
+ * and recreating the DOM) removes them, which shows as duplicated or flickering UI.
+ */
+export async function watchDomReplacement(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const removed: string[] = [];
+    (window as unknown as { __doqRemoved: string[] }).__doqRemoved = removed;
+    new MutationObserver((records) => {
+      for (const record of records)
+        for (const node of Array.from(record.removedNodes))
+          if (node.nodeType === 1 && /^(APP-ROOT|MAIN|H1)$/.test((node as Element).tagName))
+            removed.push((node as Element).tagName);
+    }).observe(document, { childList: true, subtree: true });
+  });
+}
+
+/**
+ * The page really executed the application: Angular consumed every hydration marker (`ngh`, present in the prerendered
+ * HTML and removed on hydration), and there is exactly one root and one `<h1>`. `watchDomReplacement` must have been
+ * called before the navigation.
+ *
+ * Host pages and the documentation index reuse the prerendered nodes, and this asserts it. A documentation page does not
+ * (known limitation, spec 0022): its first client render is the "loading" placeholder, because the Markdown module is
+ * imported asynchronously, so Angular discards the prerendered `<main class="doq-root">` and renders it again. That is
+ * recorded as an annotation, never silently accepted: pass `reusesPrerenderedDom: false` only for documentation pages.
+ */
+export async function expectHydrated(page: Page, { reusesPrerenderedDom = true } = {}): Promise<void> {
+  await expect.poll(() => page.locator('[ngh]').count(), { message: 'hydration markers still present' }).toBe(0);
+  await expect(page.locator('app-root')).toHaveCount(1);
+  await expect(page.locator('h1')).toHaveCount(1);
+  const removed = await page.evaluate(() => (window as unknown as { __doqRemoved: string[] }).__doqRemoved);
+  if (reusesPrerenderedDom) {
+    expect(removed, 'prerendered nodes were discarded: the page did not hydrate in place').toEqual([]);
+  } else {
+    expect(removed, 'only the documentation root may be recreated').toEqual(removed.map(() => 'MAIN'));
+    if (removed.length)
+      test
+        .info()
+        .annotations.push({ type: 'known-limitation', description: 'documentation page re-rendered, not reused' });
+  }
+}
+
 const HARNESS_LAYOUT_WARNING =
   /^\[JavaScript Warning: "Layout was forced before the page was fully loaded\..*\{file: "debugger eval code"/;
 

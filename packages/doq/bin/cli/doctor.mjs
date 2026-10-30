@@ -213,6 +213,7 @@ export async function runDoctor(options) {
         }
         add('build.routes', missing.length ? 'FAIL' : 'PASS', 'Documentation routes prerendered', missing.length ? `missing: ${list(missing)}` : `${current.routes.size} route(s) have static HTML`, 'A route without static HTML is not served by static hosting.', missing.length ? 'Check the prerender configuration and rebuild.' : undefined);
       }
+      add(...(await aotFinding(siteDir)));
       if (searchEnabled) {
         const hasIndex = await exists(join(siteDir, 'pagefind', 'pagefind.js'));
         add('build.pagefind', hasIndex ? 'PASS' : 'FAIL', 'Pagefind index in output', hasIndex ? 'pagefind/pagefind.js exists' : 'pagefind/pagefind.js is missing', 'Search needs the static index next to the pages.', hasIndex ? undefined : 'Run "doq-search index <output dir>" after the build.');
@@ -221,6 +222,30 @@ export async function runDoctor(options) {
   }
 
   return summarize(root, findings, options.strict);
+}
+
+// Angular's runtime throws this when a component was never compiled ahead of time and no compiler is in the bundle. A
+// successful build can still ship that code path (the bundler keeps `Reflect.decorate` output), so the page prerenders
+// but never hydrates. The text is tree-shaken out of a fully AOT-compiled application.
+const JIT_UNAVAILABLE = 'JIT compiler unavailable';
+const JIT_COMPILER_PRESENT = /[\w$]\.\u0275compilerFacade\s*=/;
+
+async function aotFinding(siteDir) {
+  const check = 'Browser bundles compiled ahead of time';
+  const files = (await walk(siteDir, name => name.endsWith('.js'))).filter(file => !rel(siteDir, file).startsWith('pagefind'));
+  const uncompiled = [];
+  let withCompiler = 0;
+  for (const file of files) {
+    const text = (await readText(file)) ?? '';
+    if (!text.includes(JIT_UNAVAILABLE)) continue;
+    if (JIT_COMPILER_PRESENT.test(text)) withCompiler++;
+    else uncompiled.push(rel(siteDir, file));
+  }
+  if (uncompiled.length)
+    return ['build.aot', 'FAIL', check, `needs the JIT compiler, which is not bundled: ${list(uncompiled)}`, 'A component that was not compiled ahead of time throws "JIT compiler unavailable" in the browser: the page is prerendered but does not hydrate.', 'Rebuild (this is an intermittent upstream race in the Angular compilation of concurrent client and SSR builds, see the 0.13.0 changelog); if it persists, check that every component file is in the application tsconfig.'];
+  if (withCompiler)
+    return ['build.aot', 'WARN', check, `@angular/compiler is bundled for the browser (${withCompiler} file(s))`, 'The runtime compiler adds a large amount of JavaScript and means components are compiled in the browser.', 'Compile components ahead of time and do not import @angular/compiler from application code.'];
+  return ['build.aot', 'PASS', check, `${files.length} script(s) contain no runtime-compilation path`, 'No bundle depends on the Angular JIT compiler.'];
 }
 
 function summarize(root, findings, strict = false) {
