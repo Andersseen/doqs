@@ -12,6 +12,7 @@ import { spawnSync } from 'node:child_process';
 import { cp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
+import { analogPin } from './analog-pin.ts';
 import { assertAotBuild } from './aot-guard.ts';
 import {
   assertDisposable,
@@ -43,7 +44,7 @@ const sha = await checkout('adoption-routes', source, outDir);
 
 run('pnpm', ['install', '--ignore-scripts', '--no-frozen-lockfile'], outDir);
 // The pinned revision predates the Analog 2.9.2 peer floor (PR #30); doctor's own fix for the failing peer check is to upgrade it.
-run('pnpm', ['add', `file:${tarball}`, '@analogjs/content@^2.9.2', 'pagefind@1.5.2', '--ignore-scripts'], outDir);
+run('pnpm', ['add', `file:${tarball}`, `@analogjs/content@${analogPin}`, 'pagefind@1.5.2', '--ignore-scripts'], outDir);
 
 // The host pages that Doqs replaces. Everything else under /docs, /demos and the landing stays exactly as upstream wrote it.
 const migrated = ['get-started', 'api-selection', 'accessibility', 'reference'];

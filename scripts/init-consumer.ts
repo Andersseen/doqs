@@ -14,6 +14,8 @@ import { spawnSync } from 'node:child_process';
 import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
+import { analogPin } from './analog-pin.ts';
+import { buildAot } from './aot-guard.ts';
 
 const repo = resolve(import.meta.dirname, '..');
 const flags = process.argv.slice(2).filter((arg) => arg.startsWith('--'));
@@ -25,7 +27,7 @@ if (mode !== 'embedded' && mode !== 'docs-first') throw new Error(`Unknown --mod
 if (angular !== '21' && angular !== '22') throw new Error(`Unknown --angular=${angular}`);
 const analog = flag('analog');
 if (analog !== undefined && !/^\d+\.\d+\.\d+$/.test(analog)) throw new Error(`Unknown --analog=${analog}`);
-const analogRange = analog ?? '^2.9.2';
+const analogRange = analog ?? analogPin;
 const { version } = JSON.parse(await readFile(resolve(repo, 'packages/doq/package.json'), 'utf8')) as {
   version: string;
 };
@@ -180,13 +182,7 @@ const peerFlag = analog ? [] : ['--config.strict-peer-dependencies=true'];
 run('pnpm', ['install', ...peerFlag]);
 
 // 2. Install Doqs exactly as the documentation says, from the packed tarball.
-run('pnpm', [
-  'add',
-  `@doqs/analog@file:${tarball}`,
-  analog ? `@analogjs/content@${analog}` : '@analogjs/content',
-  'prismjs',
-  ...peerFlag,
-]);
+run('pnpm', ['add', `@doqs/analog@file:${tarball}`, `@analogjs/content@${analogRange}`, 'prismjs', ...peerFlag]);
 assert.match(
   (await run('pnpm', ['--silent', 'exec', 'doq', '--version'])).stdout.trim(),
   new RegExp(`^${version.replace(/\./g, '\\.')}$`),
@@ -282,7 +278,7 @@ assert.equal(after.findings.find((item: any) => item.id === 'setup.deterministic
 assert.equal(json(['init', ...modeArgs]).integration, 'complete');
 
 // 7. A production build, then the output checks.
-run('pnpm', ['build']);
+buildAot('init-consumer', outDir, () => run('pnpm', ['build']));
 const built = json(['doctor', '--build'], analog ? null : 0);
 assert.equal(built.findings.find((item: any) => item.id === 'build.routes')?.status, 'PASS');
 console.log(`init-consumer ready (${mode}, Angular ${angular}): ${resolve(outDir, 'dist/analog/public')}`);

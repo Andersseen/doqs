@@ -20,8 +20,9 @@ import { spawnSync } from 'node:child_process';
 import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
+import { analogOverrides } from './analog-pin.ts';
 import { writeDocsFixture } from './fixtures/docs.ts';
-import { assertAotBuild } from './aot-guard.ts';
+import { buildAot } from './aot-guard.ts';
 
 const repo = resolve(import.meta.dirname, '..');
 const flags = process.argv.slice(2).filter((arg) => arg.startsWith('--'));
@@ -169,6 +170,7 @@ if (slowMarkdown || withoutGuard) {
 const manifest = JSON.parse(await readFile(resolve(source, 'package.json'), 'utf8'));
 manifest.name = `${app === 'showcase-a' ? 'doq-external-consumer-embedded' : 'doq-external-consumer'}${noAuthoring ? '-plain' : ''}${zone ? '-zone' : ''}${unversioned ? '-unversioned' : ''}${angular ? `-ng${angular}` : ''}`;
 manifest.dependencies['@doqs/analog'] = `file:${tarball}`;
+manifest.pnpm = { ...manifest.pnpm, overrides: { ...manifest.pnpm?.overrides, ...analogOverrides } };
 if (zone) manifest.dependencies['zone.js'] = '~0.15.1';
 if (angular === '22') {
   for (const group of ['dependencies', 'devDependencies'] as const)
@@ -212,8 +214,7 @@ const pnpm = (args: string[], expected = 0) => {
 pnpm(['install', ...(angular ? ['--config.strict-peer-dependencies=true'] : [])]);
 if (skipApi) {
   if (!flags.includes('--no-build')) {
-    pnpm(['build']);
-    assertAotBuild('consumer', outDir);
+    buildAot('consumer', outDir, () => pnpm(['build']));
   }
   console.log(`consumer ready: ${resolve(outDir, 'dist/analog/public')}`);
   process.exit(0);
@@ -253,6 +254,5 @@ if (!noAuthoring) {
   pnpm(['run', 'content:check']);
 }
 
-pnpm(['build']);
-assertAotBuild('consumer', outDir);
+buildAot('consumer', outDir, () => pnpm(['build']));
 console.log(`consumer ready: ${resolve(outDir, 'dist/analog/public')}`);
