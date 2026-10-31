@@ -14,6 +14,7 @@ import { spawnSync } from 'node:child_process';
 import { cp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
+import { analogPin } from './analog-pin.ts';
 import { assertAotBuild } from './aot-guard.ts';
 import {
   assertDisposable,
@@ -44,7 +45,7 @@ const source = upstream('VU', 'https://github.com/Andersseen/volt-ui.git', pinne
 const sha = await checkout('adoption-volt', source, outDir);
 
 run('pnpm', ['install', '--ignore-scripts'], outDir);
-run('pnpm', ['add', `file:${tarball}`, '@analogjs/content@^2.9.2', 'pagefind@1.5.2', '--ignore-scripts'], outDir);
+run('pnpm', ['add', `file:${tarball}`, `@analogjs/content@${analogPin}`, 'pagefind@1.5.2', '--ignore-scripts'], outDir);
 
 // The pages Doqs replaces, at the same URLs. Everything else is exactly as upstream wrote it.
 const components = 'src/app/pages/(components-docs)/docs/components';

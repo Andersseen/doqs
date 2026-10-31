@@ -15,6 +15,7 @@ import { spawnSync } from 'node:child_process';
 import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { relative, resolve } from 'node:path';
+import { analogPin } from './analog-pin.ts';
 import { assertDisposable, checkout, doqJson, repo, runner, tarballPath, upstream } from './adoption-lib.ts';
 
 /** First Angular Movement revision that shipped its own Doqs integration (@doqs/analog 0.11.0, lazy /docs region). */
@@ -50,7 +51,7 @@ console.log(`${name}: upstream declares @doqs/analog ${declared}; replacing it w
 // 2. Reproduce the consumer's own lockfile, then swap only the Doqs package.
 run('pnpm', ['install', '--frozen-lockfile', '--ignore-scripts'], outDir);
 // The pinned revision predates the Analog 2.9.2 peer floor (PR #30); doctor's own fix for the failing peer check is to upgrade it.
-run('pnpm', ['add', `file:${tarball}`, '@analogjs/content@^2.9.2', '--ignore-scripts'], outDir);
+run('pnpm', ['add', `file:${tarball}`, `@analogjs/content@${analogPin}`, '--ignore-scripts'], outDir);
 const installed = JSON.parse(await readFile(resolve(outDir, 'node_modules/@doqs/analog/package.json'), 'utf8')) as {
   version: string;
 };
