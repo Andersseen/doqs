@@ -26,11 +26,11 @@ This README is deliberately short. The guides live in the official documentation
 | --- | --- |
 | Node.js | `^20.19.0 \|\| ^22.12.0 \|\| >=24.0.0` |
 | Angular | `^21.2.2 \|\| ^22.0.0` |
-| `@analogjs/content` | `^2.9.0` |
+| `@analogjs/content` | `^2.9.2` |
 | `pagefind` (search only, optional) | `^1.5.0` |
 | `typescript` (API generation only, optional) | `^5.5.0 \|\| ^6.0.0` |
 
-Verified: Angular 21.2 with TypeScript 5.9 and Angular 22.2 with TypeScript 6.0, both with Analog 2.9.2 and zoneless change detection (initialized consumers are loaded in a real browser: hydration, navigation and Back/Forward; `doq doctor --build` also fails a build whose scripts need the Angular JIT compiler, an intermittent upstream Analog build race described in the changelog); Chromium, Firefox and WebKit. Zone.js: an Angular 21 application with `zone.js` and `provideZoneChangeDetection()` passes the consumer journey (not tested on Angular 22). Focused Linux Firefox/WebKit and Windows Chromium browser journeys pass in hosted CI (spec 0021). Screen-reader output and WCAG conformance are not verified. Peer ranges are not widened without testing; `doq doctor` checks the versions installed in your project against them.
+Verified: Angular 21.2 with TypeScript 5.9 and Angular 22.2 with TypeScript 6.0, both with Analog 2.9.2 and zoneless change detection. Production documentation pages hydrate their prerendered DOM in place; packed initialized consumers pass direct loads, navigation and Back/Forward on Angular 21 embedded, Angular 21 docs-first and Angular 22 embedded. `doq doctor --build` also detects a build whose scripts need the Angular JIT compiler, an intermittent upstream Analog build race described in the changelog. Zone.js: an Angular 21 application with `zone.js` and `provideZoneChangeDetection()` passes the consumer journey (not tested on Angular 22). Focused Linux Firefox/WebKit and Windows Chromium browser journeys pass in hosted CI (spec 0021). Screen-reader output and WCAG conformance are not verified. Peer ranges are not widened without testing; `doq doctor` checks the versions installed in your project against them.
 
 ## Installation
 

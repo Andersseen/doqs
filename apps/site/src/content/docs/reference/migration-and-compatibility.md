@@ -19,11 +19,16 @@ order: 30
 
 Node.js `^20.19 || ^22.12 || >=24`.
 
+## Documentation hydration
+
+Since 0.14, the document route resolves its Markdown before `DoqDocsComponent` creates its first view. On a direct production load, Angular hydrates the prerendered documentation root, article and heading in place; the browser tests verify node identity rather than only comparing final HTML. The checks cover Showcase A and B, the official site, Spanish and Arabic RTL catalogs, an archived version, and packed Angular 21 embedded/docs-first and Angular 22 embedded consumers. Client navigation, Back/Forward, focus and the unknown-page state are covered separately.
+
+Hydration does not prevent the intermittent upstream Analog client/SSR compilation race described in the changelog. `doq doctor --build` detects a bundle that needs an unavailable Angular JIT compiler. The Analog live SSR 404 limitation also remains unchanged.
+
 ## Not verified
 
 - Zone.js on Angular 22.
-- Localized documentation: Doqs has one content tree and English interface labels.
-- Vite below version 8, and Analog above 2.9.x.
+- Unsupported Angular/Analog/Vite combinations beyond the tested matrix.
 - Screen-reader output, Windows high-contrast themes and WCAG certification.
 - Mobile browsers beyond viewport emulation.
 

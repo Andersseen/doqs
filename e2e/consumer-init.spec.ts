@@ -37,7 +37,7 @@ test.describe('E2E-101 newly initialized consumers', () => {
       for (const [url, heading] of pages) {
         await page.goto(url);
         await expect(page.getByRole('heading', { level: 1, name: heading })).toBeVisible();
-        await expectHydrated(page, { reusesPrerenderedDom: heading === 'Acme home' });
+        await expectHydrated(page, { documentation: heading !== 'Acme home' });
         // The Angular major the page was actually built with: this proves the compatibility cell ran what it claims.
         await expect(page.locator('app-root')).toHaveAttribute('ng-version', new RegExp(`^${angular}\\.`));
       }
@@ -53,7 +53,7 @@ test.describe('E2E-101 newly initialized consumers', () => {
     test(`DX-016 ${name}: client-side navigation and Back/Forward stay in one document`, async ({ page }) => {
       await watchDomReplacement(page);
       await page.goto(entry);
-      await expectHydrated(page, { reusesPrerenderedDom: embedded });
+      await expectHydrated(page, { documentation: !embedded });
       if (embedded) {
         // The host's header link is a plain anchor: a full document load into the Doqs-owned /docs region.
         await expect(page.getByRole('heading', { level: 1, name: 'Acme home' })).toBeVisible();
@@ -73,17 +73,21 @@ test.describe('E2E-101 newly initialized consumers', () => {
       await expect(page).toHaveURL(`${docs}/getting-started`);
       await expect(page.getByRole('heading', { level: 1, name: 'Getting started' })).toBeVisible();
       await expect(page.locator('.doq-callout')).toBeVisible();
+      await expectHydrated(page, { documentation: true });
 
       await page.getByRole('link', { name: 'Introduction' }).first().click();
       await expect(page).toHaveURL(`${docs}/introduction`);
       await expect(page.getByRole('heading', { level: 1, name: 'Introduction' })).toBeFocused();
+      await expectHydrated(page, { documentation: true });
 
       await page.goBack();
       await expect(page).toHaveURL(`${docs}/getting-started`);
       await expect(page.getByRole('heading', { level: 1, name: 'Getting started' })).toBeVisible();
+      await expectHydrated(page, { documentation: true });
       await page.goForward();
       await expect(page.getByRole('heading', { level: 1, name: 'Introduction' })).toBeVisible();
       await expect(page.locator('h1')).toHaveCount(1);
+      await expectHydrated(page, { documentation: true });
       expect(await sameDocument()).toBe(true);
     });
   }
@@ -109,6 +113,6 @@ test.describe('E2E-101 newly initialized consumers', () => {
     // Doqs mounted at "/" owns every route: a host page at /about is shadowed, as the docs-first guide states.
     await page.goto(`${apps.initDocsFirst.url}/about`);
     await expect(page.getByRole('heading', { level: 1, name: 'Documentation page not found' })).toBeVisible();
-    await expectHydrated(page, { reusesPrerenderedDom: false });
+    await expectHydrated(page, { documentation: true });
   });
 });

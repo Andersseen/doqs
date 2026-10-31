@@ -26,12 +26,33 @@ export async function expectClipboard(page: Page, expected: string): Promise<voi
 export async function watchDomReplacement(page: Page): Promise<void> {
   await page.addInitScript(() => {
     const removed: string[] = [];
-    (window as unknown as { __doqRemoved: string[] }).__doqRemoved = removed;
+    const nodes: { root: Element | null; article: Element | null; heading: Element | null; loadingSeen: boolean } = {
+      root: null,
+      article: null,
+      heading: null,
+      loadingSeen: false,
+    };
+    (window as unknown as { __doqRemoved: string[]; __doqDocumentNodes: typeof nodes }).__doqRemoved = removed;
+    (window as unknown as { __doqDocumentNodes: typeof nodes }).__doqDocumentNodes = nodes;
     new MutationObserver((records) => {
-      for (const record of records)
+      for (const record of records) {
         for (const node of Array.from(record.removedNodes))
           if (node.nodeType === 1 && /^(APP-ROOT|MAIN|H1)$/.test((node as Element).tagName))
             removed.push((node as Element).tagName);
+        for (const node of Array.from(record.addedNodes)) {
+          if (node.nodeType !== 1) continue;
+          const element = node as Element;
+          if (element.matches('.doq-loading') || element.querySelector('.doq-loading')) nodes.loadingSeen = true;
+          const root = element.matches('.doq-root, .doq-not-found')
+            ? element
+            : element.querySelector('.doq-root, .doq-not-found');
+          if (root && !nodes.root) {
+            nodes.root = root;
+            nodes.article = root.querySelector('article');
+            nodes.heading = root.querySelector('h1');
+          }
+        }
+      }
     }).observe(document, { childList: true, subtree: true });
   });
 }
@@ -41,24 +62,41 @@ export async function watchDomReplacement(page: Page): Promise<void> {
  * HTML and removed on hydration), and there is exactly one root and one `<h1>`. `watchDomReplacement` must have been
  * called before the navigation.
  *
- * Host pages and the documentation index reuse the prerendered nodes, and this asserts it. A documentation page does not
- * (known limitation, spec 0022): its first client render is the "loading" placeholder, because the Markdown module is
- * imported asynchronously, so Angular discards the prerendered `<main class="doq-root">` and renders it again. That is
- * recorded as an annotation, never silently accepted: pass `reusesPrerenderedDom: false` only for documentation pages.
+ * Captures the prerendered docs root, article and heading before application scripts run. A real hydration must reuse those
+ * exact nodes; matching final HTML or consuming `ngh` markers is not enough.
  */
-export async function expectHydrated(page: Page, { reusesPrerenderedDom = true } = {}): Promise<void> {
+export async function expectHydrated(page: Page, { documentation = false } = {}): Promise<void> {
   await expect.poll(() => page.locator('[ngh]').count(), { message: 'hydration markers still present' }).toBe(0);
   await expect(page.locator('app-root')).toHaveCount(1);
   await expect(page.locator('h1')).toHaveCount(1);
   const removed = await page.evaluate(() => (window as unknown as { __doqRemoved: string[] }).__doqRemoved);
-  if (reusesPrerenderedDom) {
-    expect(removed, 'prerendered nodes were discarded: the page did not hydrate in place').toEqual([]);
-  } else {
-    expect(removed, 'only the documentation root may be recreated').toEqual(removed.map(() => 'MAIN'));
-    if (removed.length)
-      test
-        .info()
-        .annotations.push({ type: 'known-limitation', description: 'documentation page re-rendered, not reused' });
+  expect(removed, 'prerendered application nodes were discarded').toEqual([]);
+  if (documentation) {
+    const nodes = await page.evaluate(() => {
+      const captured = (
+        window as unknown as {
+          __doqDocumentNodes: {
+            root: Element | null;
+            article: Element | null;
+            heading: Element | null;
+            loadingSeen: boolean;
+          };
+        }
+      ).__doqDocumentNodes;
+      const currentRoot = document.querySelector('.doq-root, .doq-not-found');
+      return {
+        captured: !!captured.root,
+        rootReused: !!captured.root && captured.root === currentRoot && captured.root.isConnected,
+        articleReused: !captured.article || captured.article === currentRoot?.querySelector('article'),
+        headingReused: !captured.heading || captured.heading === currentRoot?.querySelector('h1'),
+        loadingSeen: captured.loadingSeen,
+      };
+    });
+    expect(nodes.captured, 'the prerendered documentation root was observed before hydration').toBe(true);
+    expect(nodes.rootReused, 'the prerendered documentation root survived hydration').toBe(true);
+    expect(nodes.articleReused, 'the prerendered article survived hydration').toBe(true);
+    expect(nodes.headingReused, 'the prerendered heading survived hydration').toBe(true);
+    expect(nodes.loadingSeen, 'the loading placeholder was never inserted').toBe(false);
   }
 }
 
