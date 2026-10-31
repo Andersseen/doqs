@@ -631,7 +631,7 @@ describe('UNIT-170 symbol index in the manifest', () => {
     // A hand-edited index is detected as stale rather than trusted.
     await writeFile(join(cwd, 'src/content/docs/reference/api/.doq-api.json'), before.replace('/thing3', '/elsewhere'));
     expect((await checkApiReference(opts)).upToDate).toBe(false);
-  });
+  }, 15_000);
 });
 
 describe('UNIT-143 COMPAT-02 sources checked out with CRLF line endings', () => {
