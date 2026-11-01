@@ -50,9 +50,13 @@ export function injectDoqLocaleCatalogs(config: DoqConfig = inject(DOQ_CONFIG), 
 
 /** The catalog one route renders, resolved from the route data `doqRoutes()` wrote. */
 export function injectDoqCatalog(config: DoqConfig = inject(DOQ_CONFIG)): DoqCatalog {
-  const data = inject(ActivatedRoute).snapshot.data;
+  return resolveDoqRouteCatalog(config, inject(ActivatedRoute).snapshot.data, inject(Router).url);
+}
+
+/** Resolve the same locale/version catalog used by the routed docs view, from route snapshot data. */
+export function resolveDoqRouteCatalog(config: DoqConfig, data: Readonly<Record<string, unknown>>, url: string): DoqCatalog {
   const paths = normalizeDoqPathsFull(config);
-  const urlLocale = inject(Router).url.split(/[?#]/, 1)[0]?.split('/').filter(Boolean)[0];
+  const urlLocale = url.split(/[?#]/, 1)[0]?.split('/').filter(Boolean)[0];
   const locale = data['doqLocale'] as string | undefined ?? paths.i18n?.locales.find(candidate => !candidate.default && candidate.id === urlLocale)?.id;
   return resolveCatalog(paths, data['doqVersion'] as string | undefined, locale);
 }

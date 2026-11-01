@@ -1,9 +1,9 @@
-import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, ElementRef, inject, PendingTasks, PLATFORM_ID, RESPONSE_INIT, signal, Type, untracked } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, ElementRef, inject, PLATFORM_ID, RESPONSE_INIT, signal, Type, untracked } from '@angular/core';
 import { DOCUMENT, isPlatformBrowser, isPlatformServer, NgComponentOutlet, NgTemplateOutlet } from '@angular/common';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, NavigationCancel, NavigationEnd, NavigationError, NavigationSkipped, NavigationStart, Router, RouterLink } from '@angular/router';
-import { catchError, finalize, from, map, of, startWith, switchMap } from 'rxjs';
-import { ContentRenderer, injectContentFilesMap, MarkdownComponent, parseRawContentFile } from '@analogjs/content';
+import { map } from 'rxjs';
+import { MarkdownComponent } from '@analogjs/content';
 import { injectDoqCatalog, injectDoqCatalogs, injectDoqDocuments, injectDoqLocaleCatalogs, resolveDoqCopy } from './doq-catalog';
 import { DOQ_CONFIG, DOQ_LOCALE_FILTER, DOQ_VERSION_FILTER } from '@doqs/analog/config';
 import { doqPageTitle, DoqPageMetadata } from './doq-metadata';
@@ -19,6 +19,7 @@ import { doqCanonicalUrl, doqLocaleLinks, doqVersionLinks, getDoqVersions } from
 import { normalizeDoqPaths } from '@doqs/analog/config';
 import { parseDoqContent, parseDoqDocument } from './doq-rich-content';
 import { DoqTabsComponent } from './doq-tabs.component';
+import { DoqResolvedDocument } from './doq-document-resolver';
 
 interface DocAttributes { title?: string; description?: string; order?: number; group?: string; slug?: string; demo?: string; }
 
@@ -101,8 +102,7 @@ interface DocAttributes { title?: string; description?: string; order?: number; 
       @if (config.landmark === 'host') { <div class="doq-root" [style.--doq-content-width]="config.contentWidth" [style.--doq-sidebar-width]="config.sidebarWidth" [attr.data-sidebar]="config.sidebar" [attr.data-toc]="tocEnabled() ? 'shown' : 'none'" [attr.data-doq-version]="versioned ? catalog.version.id : null" [attr.data-doq-locale]="catalog.locale.id || null" [attr.dir]="dirAttribute()"><ng-container *ngTemplateOutlet="body" /></div> }
       @else { <main class="doq-root" [style.--doq-content-width]="config.contentWidth" [style.--doq-sidebar-width]="config.sidebarWidth" [attr.data-sidebar]="config.sidebar" [attr.data-toc]="tocEnabled() ? 'shown' : 'none'" [attr.data-doq-version]="versioned ? catalog.version.id : null" [attr.data-doq-locale]="catalog.locale.id || null" [attr.dir]="dirAttribute()"><ng-container *ngTemplateOutlet="body" /></main> }
       } @else { @if (config.landmark === 'host') { <div class="doq-not-found"><ng-container *ngTemplateOutlet="notFound" /></div> } @else { <main class="doq-not-found"><ng-container *ngTemplateOutlet="notFound" /></main> } }
-    } @else if (document() === undefined) { <div class="doq-loading" aria-live="polite">{{ i18n.t('documentation.loading') }}</div> }
-    @else { @if (config.landmark === 'host') { <div class="doq-not-found"><ng-container *ngTemplateOutlet="notFound" /></div> } @else { <main class="doq-not-found"><ng-container *ngTemplateOutlet="notFound" /></main> } }
+    } @else { @if (config.landmark === 'host') { <div class="doq-not-found"><ng-container *ngTemplateOutlet="notFound" /></div> } @else { <main class="doq-not-found"><ng-container *ngTemplateOutlet="notFound" /></main> } }
   `,
 })
 export class DoqDocsComponent {
@@ -121,6 +121,14 @@ export class DoqDocsComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   readonly routeSlug = toSignal(this.route.paramMap.pipe(map(params => params.get(this.config.routeParam ?? 'slug') ?? '')), { initialValue: '' });
+  private readonly resolvedDocumentBasePath = toSignal(
+    this.route.data.pipe(map(data => (data['doqResolvedDocument'] as DoqResolvedDocument | null | undefined)?.basePath)),
+    { initialValue: (this.route.snapshot.data['doqResolvedDocument'] as DoqResolvedDocument | null | undefined)?.basePath },
+  );
+  readonly document = toSignal(
+    this.route.data.pipe(map(data => this.documentView(data['doqResolvedDocument'] as DoqResolvedDocument | null | undefined))),
+    { initialValue: this.documentView(this.route.snapshot.data['doqResolvedDocument'] as DoqResolvedDocument | null | undefined) },
+  );
   readonly fragment = toSignal(this.route.fragment, { initialValue: null });
   /** True once the current document's Markdown is in the DOM, so fragment targets exist. */
   private readonly rendered = signal(false);
@@ -169,9 +177,6 @@ export class DoqDocsComponent {
   private readonly localeCatalogs = this.i18n.localized ? injectDoqLocaleCatalogs(this.config, this.catalog.version.id) : {};
   readonly versionLinks = computed(() => this.versioned ? doqVersionLinks(this.versionList(), this.catalog.version.id, this.ownSlug(), this.versionCatalogs) : []);
   readonly localeLinks = computed(() => this.i18n.i18n ? doqLocaleLinks(this.i18n.i18n, this.catalog.locale.id, this.catalog.version, this.ownSlug(), this.localeCatalogs) : []);
-  private readonly contentMap = injectContentFilesMap();
-  private readonly renderer = inject(ContentRenderer);
-  private readonly pendingTasks = inject(PendingTasks);
   private readonly platformId = inject(PLATFORM_ID);
   private readonly documentRef = inject(DOCUMENT);
   private readonly host = inject(ElementRef<HTMLElement>);
@@ -227,43 +232,6 @@ export class DoqDocsComponent {
     const slug = this.routeSlug();
     return !!slug && !this.documents.some(doc => doc.slug === slug) && this.fallbackDocument() !== null;
   });
-  /**
-   * Which catalog the routed slug resolves from: its own locale, or the default locale under an
-   * untranslated notice. Private, so the public `document` signal keeps its 0.11 shape exactly.
-   */
-  private readonly documentSource = computed(() => {
-    const slug = this.routeSlug();
-    if (this.unknownVersion() || !slug) return null;
-    const own = this.documents.find(doc => doc.slug === slug);
-    if (own) return { slug, directory: this.catalog.contentDirectory, basePath: this.catalog.basePath, translated: true };
-    if (this.fallbackDocument()) return { slug, directory: this.defaultLocaleDirectory(), basePath: this.defaultLocaleBasePath(), translated: false };
-    return null;
-  });
-  readonly document = toSignal(this.route.paramMap.pipe(
-    map(params => params.get(this.config.routeParam ?? 'slug') ?? ''),
-    switchMap(slug => {
-      const source = this.documentSource();
-      if (!source || source.slug !== slug) return of(null);
-      // Analog's injectContentFilesMap intentionally re-keys loaders by the
-      // frontmatter slug. The canonical catalog resolves that public slug to
-      // its source entry; use the matching Analog alias to load its module.
-      const contentBase = `src/content/${source.directory}/${source.slug}`;
-      const candidates = new Set([`${contentBase}.md`, `${contentBase}/index.md`]);
-      const key = Object.keys(this.contentMap).find(candidate => candidates.has(this.canonicalFilename(candidate, source.directory)));
-      const load = key ? this.contentMap[key] : undefined;
-      if (!load) return of(null);
-      const clearPendingTask = this.pendingTasks.add();
-      return from(load()).pipe(
-        switchMap(raw => {
-          const parsed = parseRawContentFile<DocAttributes>(raw);
-          return from(this.renderer.render(parsed.content)).pipe(map(rendered => ({ filename: `${source.directory}/${source.slug}.md`, slug: source.slug, attributes: parsed.attributes, content: parsed.content, toc: rendered.toc })));
-        }),
-        catchError(error => { console.error(`Doq: failed to resolve src/content/${source.directory}/${source.slug}.md`, error); return of(null); }),
-        finalize(clearPendingTask),
-        startWith(undefined),
-      );
-    }),
-  ), { initialValue: undefined });
   private ownSlug(): string | null { const slug = this.routeSlug(); return slug && this.documents.some(doc => doc.slug === slug) ? slug : null; }
   playgroundDefinition(id: string): DoqPlaygroundDefinition | undefined { return this.config.playgrounds && Object.prototype.hasOwnProperty.call(this.config.playgrounds, id) ? this.config.playgrounds[id] : undefined; }
   demoComponent(id: string): Type<unknown> | undefined { return id === 'button' ? DoqButtonDemoComponent : this.config.demos?.[id]; }
@@ -380,12 +348,16 @@ export class DoqDocsComponent {
   currentVersionLabel(): string { return this.versions[0]?.label ?? ''; }
   defaultLocaleLabel(): string { return this.i18n.i18n?.locales.find(locale => locale.default)?.label ?? ''; }
   /** Mount path of the catalog the routed document actually came from, for its canonical URL. */
-  private documentBasePath(): string { return this.documentSource()?.basePath ?? this.catalog.basePath; }
-  private defaultLocaleDirectory(): string { return this.i18n.defaultLocaleEntry?.contentDirectory ?? this.catalog.contentDirectory; }
-  private defaultLocaleBasePath(): string {
-    const paths = normalizeDoqPaths(this.config);
-    const version = getDoqVersions(paths).find(candidate => candidate.id === this.catalog.version.id);
-    return version?.basePath ?? this.catalog.basePath;
+  private documentBasePath(): string { return this.resolvedDocumentBasePath() ?? this.catalog.basePath; }
+  private documentView(document: DoqResolvedDocument | null | undefined) {
+    if (!document) return null;
+    return {
+      filename: document.filename,
+      slug: document.slug,
+      attributes: document.attributes as DocAttributes,
+      content: document.content,
+      toc: document.toc.map(heading => ({ id: heading.id, level: heading.level, text: heading.text })),
+    };
   }
   private defaultLocaleDocuments() {
     return this.i18n.i18n?.fallback === 'default-locale' && !this.catalog.locale.default
@@ -455,12 +427,6 @@ export class DoqDocsComponent {
       for (const node of Array.from(markdown.querySelectorAll<HTMLElement>('[id]'))) if (node.id === id && node.closest('.doq-markdown')) return node;
     }
     return undefined;
-  }
-  private canonicalFilename(filename: string, contentDirectory: string): string {
-    const normalized = filename.replace(/\\/g, '/');
-    const marker = `src/content/${contentDirectory}/`;
-    const index = normalized.lastIndexOf(marker);
-    return index < 0 ? normalized : normalized.slice(index);
   }
   private get hostElement(): HTMLElement { return this.host.nativeElement as HTMLElement; }
   private enhanceRenderedDocument(): boolean {

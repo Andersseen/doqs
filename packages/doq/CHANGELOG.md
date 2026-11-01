@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.14.0
+
+True documentation hydration. Internal route resolution prepares the selected Markdown document before `DoqDocsComponent` creates its first view, so direct production loads hydrate the existing prerendered DOM. Additive: no exported type, function, configuration key, frontmatter key, route or `--host-docs-*` token changed. Verified with Angular 21.2 and 22.2, Analog 2.9.2, production Showcase A/B and official site output, and packed initialized Angular 21 embedded/docs-first and Angular 22 embedded consumers. This release follows published 0.13.0 and remains gated by the normal CI release workflow.
+
+### Fixed
+
+- **Documentation pages hydrate in place.** An internal Angular Router resolver uses the configured route parameter and the existing locale/version catalog, default-locale fallback, Analog Markdown aliases, parser and renderer before the documentation component activates. The server and client now render from the same resolved document state. Direct-load browser tests preserve the server-rendered root, article and heading nodes; client navigation and Back/Forward continue to work. No public API or new configuration was added.
+
 ## 0.13.0
 
 Production hydration and onboarding reliability. Additive: no exported type, function, configuration key, frontmatter key, route or `--host-docs-*` token was removed or changed (`pnpm verify:public-api` passes against the 0.7 baseline; the report differs only in its version). The release is driven by the existing workflow after merge; nothing is published by hand. Verified against Angular 21.2.25 and 22 with `@analogjs/*` 2.9.2 (peer range unchanged: `@analogjs/content` `^2.9.2`).

@@ -4,6 +4,7 @@ import { DOQ_CONFIG, DoqConfig } from '@doqs/analog/config';
 import { injectDoqDocuments } from './doq-catalog';
 import { DoqDocsComponent } from './doq-docs.component';
 import { DoqIndexComponent } from './doq-index.component';
+import { resolveDoqDocument } from './doq-document-resolver';
 import { doqReservedSegments, getDoqCatalogs, normalizeDoqPathsFull } from '@doqs/analog/config';
 
 /**
@@ -43,6 +44,7 @@ export function doqRoutes(config: Pick<DoqConfig, 'basePath' | 'routeParam' | 'v
       },
       component: DoqDocsComponent,
       data,
+      resolve: { doqResolvedDocument: resolveDoqDocument },
       ...(continues ? { canMatch: [hasDocument(versionId, localeId, prefix.length)] } : {}),
     },
   ];
@@ -71,7 +73,7 @@ export function doqRoutes(config: Pick<DoqConfig, 'basePath' | 'routeParam' | 'v
     };
     return [
       ...archives.flatMap(archive => versionRoutes(archive.basePath.split('/').filter(Boolean), { ...data, doqVersion: archive.version.id }, archive.version.id, localeId)),
-      { matcher: unknownVersion, component: DoqDocsComponent, data: { ...data, doqUnknownVersion: true } },
+      { matcher: unknownVersion, component: DoqDocsComponent, data: { ...data, doqUnknownVersion: true }, resolve: { doqResolvedDocument: resolveDoqDocument } },
       ...currentIndex,
       guardedDocument,
     ];
