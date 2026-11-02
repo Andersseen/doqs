@@ -141,4 +141,11 @@ describe('event payload formatting', () => {
     expect(history).toHaveLength(20);
     expect(history[0]!.id).toBe(30);
   });
+
+  it('UNIT-177: expandedPreview is optional, accepts modal and overlay-compatible, and rejects anything else', () => {
+    expect(check({})).toEqual([]);
+    expect(check({ expandedPreview: 'modal' })).toEqual([]);
+    expect(check({ expandedPreview: 'overlay-compatible' })).toEqual([]);
+    expect(check({ expandedPreview: 'floating' as never })[0]).toContain('"expandedPreview" must be "modal" or "overlay-compatible"');
+  });
 });

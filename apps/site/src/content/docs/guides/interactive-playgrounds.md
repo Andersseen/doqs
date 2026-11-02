@@ -77,8 +77,36 @@ Each entry is either static text or a function of the current valid values. `for
 ## Preview, expand and reset
 
 - **Widths.** Responsive, Mobile (320px) and Tablet (768px) resize the preview container, not the browser. Pass `previewSizes` to customise them or `false` to hide them. Changing width never recreates the component.
-- **Expand.** The preview moves into a native modal dialog: same instance, same state, Escape closes it and focus returns to the button. Overlays a component appends to `<body>` render beneath the dialog.
+- **Expand.** The preview moves into a native modal dialog: same instance, same state, Escape closes it and focus returns to the button. Overlays a component appends to `<body>` render beneath the dialog; see [Expanded previews and body-mounted overlays](#expanded-previews-and-body-mounted-overlays).
 - **Reset.** Restores every control, clears the events and **recreates** the component, so internal state starts over. Changing a control never recreates it.
+
+## Expanded previews and body-mounted overlays
+
+By default the expanded preview is a native modal `<dialog>` (`showModal()`). The browser puts it in the **top layer**, above everything that is not inside it, and makes the rest of the page inert. No `z-index` can lift a regular element above the top layer, so a select list, popover or dialog that a component appends to `document.body` is in the DOM but cannot be seen or reached while the preview is expanded. Components that render overlays inside their own subtree work in both modes.
+
+If your component portals its overlays to `<body>`, opt into the non-modal panel:
+
+```ts
+// doq.config.ts
+playgrounds: {
+  'app-select': {
+    component: AppSelectPlayground,
+    title: 'Select',
+    expandedPreview: 'overlay-compatible',
+    outputs: [{ event: 'changed', label: 'Changed' }],
+  },
+},
+```
+
+| | `'modal'` (default) | `'overlay-compatible'` |
+| --- | --- | --- |
+| Element | `showModal()` dialog in the top layer | non-modal `show()` dialog, fixed panel in normal stacking order |
+| Background | inert, dimmed | stays interactive, not dimmed |
+| Focus | trapped by the browser | **not trapped**; Tab can leave the panel |
+| Escape | closes the preview | **not handled by Doqs**; your overlays receive it, the Close button closes the panel |
+| Body-mounted overlays | hidden behind the top layer | visible and interactive if their container stacks above `--doq-playground-expanded-z-index` (default 50) |
+
+Doqs guarantees, in both modes, that the same component instance moves into the panel and back, so inputs, outputs, internal state and the event list survive, that focus returns to the Expand button on close, and that a route change removes the panel. The mode is not modal and is not announced as modal. Whether an overlay appears above the panel depends on the library's own container z-index; Doqs does not move, wrap or replace consumer overlays and adds no dependency. Verified in CI against the real Volt UI select, popover and dialog; other libraries are untested.
 
 ## Server rendering
 
@@ -86,7 +114,7 @@ The preview is created during rendering, so a component that renders on the serv
 
 ## Styling
 
-The playground uses native controls and the existing `--host-docs-*` tokens. Two optional tokens adjust it: `--host-docs-playground-surface` and `--host-docs-playground-preview`.
+The playground uses native controls and the existing `--host-docs-*` tokens. Optional tokens adjust it: `--host-docs-playground-surface` and `--host-docs-playground-preview`; `--doq-playground-expanded-z-index` sets the stacking of the overlay-compatible panel (the common `z-index: 50` overlay level; overlays appended to `<body>` later win ties, so raise the token above your sticky header only if it is higher than that).
 
 ## Live example
 

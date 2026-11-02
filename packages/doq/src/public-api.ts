@@ -27,5 +27,5 @@ export type {
   DoqI18nConfig, DoqLocaleConfig, DoqResolvedI18n, DoqResolvedLocale, DoqCatalog, DoqLocaleLink, DoqTextDirection,
   DoqI18nAdapter, DoqMessageKey, DoqMessageParams, DoqResolvedPaths,
   DoqBooleanControl, DoqControlValue, DoqNumberControl, DoqPlaygroundCode, DoqPlaygroundControl, DoqPlaygroundDefinition, DoqPlaygroundOutput,
-  DoqPlaygroundRegistry, DoqPlaygroundValues, DoqPreviewSize, DoqSelectControl, DoqSelectOption, DoqStringControl,
+  DoqPlaygroundRegistry, DoqPlaygroundValues, DoqExpandedPreviewMode, DoqPreviewSize, DoqSelectControl, DoqSelectOption, DoqStringControl,
 } from '@doqs/analog/config';

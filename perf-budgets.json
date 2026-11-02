@@ -109,9 +109,9 @@
     {
       "target": "site",
       "metric": "searchIndexBytes",
-      "baseline": 82802,
-      "max": 86942,
-      "reason": "Updated 0.12 content baseline: 82,802 B, +9,789 B from 73,013 B after adding the multilingual setup guide to the existing versioning guide page. Static page count remains 45; initial JS and CSS remain within their existing budgets. The 5% allowance covers Pagefind serialization variation for authored content, not runtime code."
+      "baseline": 87434,
+      "max": 91806,
+      "reason": "Updated 0.12 content baseline: 82,802 B, +9,789 B from 73,013 B after adding the multilingual setup guide to the existing versioning guide page. Static page count remains 45; initial JS and CSS remain within their existing budgets. The 5% allowance covers Pagefind serialization variation for authored content, not runtime code. 0.15 baseline: 87,434 B, +4,632 B from 82,802 B after adding the expanded-preview and body-mounted-overlay section to the interactive playgrounds guide (documentation text only; static page count and initial JS and CSS are unchanged)."
     },
     {
       "target": "site",

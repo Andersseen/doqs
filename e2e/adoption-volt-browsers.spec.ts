@@ -31,12 +31,67 @@ test.describe('E2E-144 ADOPT browsers: Volt UI at its original URLs', () => {
     await page.keyboard.press('Escape');
     await expect(page.getByRole('dialog')).toHaveCount(0);
     await expect(trigger).toBeFocused();
+  });
+
+  // The default (modal) expansion is unchanged: Escape closes it and focus returns to Expand. The button playground keeps the default.
+  test('the default expanded preview is modal, keeps its instance, closes with Escape and restores focus', async ({
+    page,
+  }) => {
+    await page.goto(`${base}/docs/components/button`);
+    const playground = group(page, 'volt-button');
     const expand = playground.getByRole('button', { name: 'Expand' });
-    await expand.click();
+    await expand.focus();
+    await page.keyboard.press('Enter');
     await expect(page.getByRole('dialog', { name: /expanded preview/ })).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(page.getByRole('dialog')).toHaveCount(0);
     await expect(expand).toBeFocused();
+  });
+
+  test('E2E-173 an overlay-compatible expanded preview keeps the real Volt select list hit-testable and usable by pointer', async ({
+    page,
+  }) => {
+    await page.goto(`${base}/docs/components/select`);
+    const select = group(page, 'volt-select');
+    const expand = select.getByRole('button', { name: 'Expand' });
+    await expand.focus();
+    await page.keyboard.press('Enter');
+    const expanded = select.getByRole('dialog', { name: /expanded preview/ });
+    await expect(expanded).toBeVisible();
+    await expanded.getByRole('combobox', { name: 'Fruit' }).click();
+    const option = page.getByRole('option', { name: 'Banana' });
+    await expect(option).toBeVisible();
+    const hit = await option.evaluate((el) => {
+      const box = el.getBoundingClientRect();
+      const top = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+      return !!top && (el === top || el.contains(top));
+    });
+    expect(hit).toBe(true);
+    await option.click();
+    await expect(select.getByRole('list', { name: 'Events' })).toContainText('Changed');
+    await expanded.getByRole('button', { name: 'Close' }).focus();
+    await page.keyboard.press('Enter');
+    await expect(expanded).toBeHidden();
+    await expect(expand).toBeFocused();
+    await expect(select.getByRole('combobox', { name: 'Fruit' })).toContainText(/banana/i);
+  });
+
+  test('E2E-174 in the default modal expansion the same body-mounted list is not hit-testable (control)', async ({
+    page,
+  }) => {
+    await page.goto(`${base}/docs/components/select`);
+    const select = group(page, 'volt-select-modal');
+    await select.getByRole('button', { name: 'Expand' }).click();
+    const expanded = select.getByRole('dialog', { name: /expanded preview/ });
+    await expanded.getByRole('combobox', { name: 'Fruit' }).click();
+    const option = page.getByRole('option', { name: 'Banana' });
+    await expect(option).toBeAttached();
+    const hit = await option.evaluate((el) => {
+      const box = el.getBoundingClientRect();
+      const top = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+      return !!top && (el === top || el.contains(top));
+    });
+    expect(hit).toBe(false);
   });
 
   test('client navigation to a host-owned page and back hydrates without errors', async ({ page }) => {

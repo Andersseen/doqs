@@ -1,5 +1,5 @@
 {
-  "version": "0.14.0",
+  "version": "0.15.0",
   "entries": {
     ".": {
       "DOQ_CONFIG": {
@@ -118,6 +118,10 @@
           "text": "readonly text: string;"
         }
       },
+      "DoqExpandedPreviewMode": {
+        "kind": "type",
+        "text": "type DoqExpandedPreviewMode = 'modal' | 'overlay-compatible';"
+      },
       "DoqI18nAdapter": {
         "kind": "interface",
         "text": "DoqI18nAdapter",
@@ -217,6 +221,7 @@
           "component": "readonly component: Type<unknown>;",
           "controls": "readonly controls?: readonly DoqPlaygroundControl[];",
           "description": "readonly description?: string;",
+          "expandedPreview": "readonly expandedPreview?: DoqExpandedPreviewMode;",
           "outputs": "readonly outputs?: readonly DoqPlaygroundOutput[];",
           "previewSizes": "readonly previewSizes?: false | readonly DoqPreviewSize[];",
           "title": "readonly title?: string;"
@@ -1183,6 +1188,10 @@
           "text": "readonly text: string;"
         }
       },
+      "DoqExpandedPreviewMode": {
+        "kind": "type",
+        "text": "type DoqExpandedPreviewMode = 'modal' | 'overlay-compatible';"
+      },
       "DoqI18nAdapter": {
         "kind": "interface",
         "text": "DoqI18nAdapter",
@@ -1286,6 +1295,7 @@
           "component": "readonly component: Type<unknown>;",
           "controls": "readonly controls?: readonly DoqPlaygroundControl[];",
           "description": "readonly description?: string;",
+          "expandedPreview": "readonly expandedPreview?: DoqExpandedPreviewMode;",
           "outputs": "readonly outputs?: readonly DoqPlaygroundOutput[];",
           "previewSizes": "readonly previewSizes?: false | readonly DoqPreviewSize[];",
           "title": "readonly title?: string;"

@@ -153,7 +153,7 @@ interface Snippet { readonly label: string; readonly language?: string; readonly
         </div>
       }
       <p class="doq-visually-hidden" role="status" aria-live="polite">{{ statusText() }}</p>
-      <dialog #dialog class="doq-pg-dialog" [attr.aria-labelledby]="uid() + '-dialog-title'" (close)="onDialogClose()">
+      <dialog #dialog class="doq-pg-dialog" [attr.data-doq-expanded]="expandedMode()" [attr.aria-labelledby]="uid() + '-dialog-title'" (close)="onDialogClose()">
         <div class="doq-pg-dialog-bar">
           <p class="doq-pg-title" [id]="uid() + '-dialog-title'">{{ title() }} — {{ i18n.t('playground.expandedPreview') }}</p>
           <button type="button" class="doq-pg-button" (click)="closeDialog()">{{ i18n.t('playground.close') }}</button>
@@ -181,6 +181,7 @@ export class DoqPlaygroundComponent {
   readonly sizes = computed(() => { const sizes = this.definition().previewSizes; return sizes === false ? [] : (sizes ?? DOQ_DEFAULT_PREVIEW_SIZES); });
   readonly sizeIndex = linkedSignal<unknown, number>({ source: this.sizes, computation: () => 0 });
   readonly expanded = signal(false);
+  protected readonly expandedMode = computed(() => (this.definition().expandedPreview === 'overlay-compatible' ? 'overlay-compatible' : 'modal'));
   readonly frameWidth = computed(() => (this.expanded() ? 'none' : (this.sizes()[this.sizeIndex()]?.width ?? '100%')));
   readonly status = signal<{ key: DoqMessageKey; params?: DoqMessageParams } | undefined>(undefined);
   readonly statusText = computed(() => {
@@ -258,14 +259,17 @@ export class DoqPlaygroundComponent {
 
   /**
    * The preview moves into a native modal dialog and back: the same component instance, its state and its output
-   * subscriptions all survive; nothing is recreated. Escape, the focus trap and inert background come from `<dialog>`.
-   * Overlays a component appends to `<body>` (such as CDK overlays) render below the dialog's top layer.
+   * subscriptions all survive; nothing is recreated. By default Escape, the focus trap and inert background come from the
+   * modal `<dialog>`, and overlays a component appends to `<body>` (such as CDK overlays) render below its top layer.
+   * With `expandedPreview: 'overlay-compatible'` the dialog is opened non-modally (`show()`): it stays in ordinary stacking
+   * order so those overlays remain usable, and Doqs installs no key listener, so Escape belongs to the consumer's overlays.
    */
   expand(): void {
     const dialog = this.dialog().nativeElement;
     this.dialogBody().nativeElement.appendChild(this.stage().nativeElement);
     this.expanded.set(true);
-    if (typeof dialog.showModal === 'function') dialog.showModal();
+    if (this.expandedMode() === 'overlay-compatible') { if (typeof dialog.show === 'function') dialog.show(); else dialog.setAttribute('open', ''); }
+    else if (typeof dialog.showModal === 'function') dialog.showModal();
     else dialog.setAttribute('open', '');
   }
 

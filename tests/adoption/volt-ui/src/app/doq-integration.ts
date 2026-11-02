@@ -50,6 +50,7 @@ export const doqConfig = defineDoqConfig({
       component: VoltDialogPlayground,
       title: 'voltDialogRoot',
       description: 'A real Volt UI dialog: its overlay and content render in the application root, like in production.',
+      expandedPreview: 'overlay-compatible',
       controls: [
         { input: 'heading', kind: 'string', label: 'Heading', initial: 'Delete project?' },
         { input: 'role', kind: 'select', label: 'Role', initial: 'dialog', options: options('dialog', 'alertdialog') },
@@ -61,6 +62,7 @@ export const doqConfig = defineDoqConfig({
       component: VoltPopoverPlayground,
       title: 'voltPopover',
       description: 'A real Volt UI popover trigger and content.',
+      expandedPreview: 'overlay-compatible',
       controls: [
         {
           input: 'placement',
@@ -76,6 +78,17 @@ export const doqConfig = defineDoqConfig({
     'volt-select': {
       component: VoltSelectPlayground,
       title: 'volt-select',
+      description: 'A real Volt UI select; its dropdown is portalled to the document body.',
+      expandedPreview: 'overlay-compatible',
+      controls: [
+        { input: 'placeholder', kind: 'string', label: 'Placeholder', initial: 'Select a fruit' },
+        { input: 'disabled', kind: 'boolean', label: 'Disabled' },
+      ],
+      outputs: [{ event: 'changed', label: 'Changed' }],
+    },
+    'volt-select-modal': {
+      component: VoltSelectPlayground,
+      title: 'volt-select-modal',
       description: 'A real Volt UI select; its dropdown is portalled to the document body.',
       controls: [
         { input: 'placeholder', kind: 'string', label: 'Placeholder', initial: 'Select a fruit' },

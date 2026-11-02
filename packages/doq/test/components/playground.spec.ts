@@ -322,4 +322,48 @@ describe('playground', () => {
     expect(document.querySelector('[data-doq-demo="counter"]')).toBeTruthy();
     fireEvent.click(screen.getAllByRole('button', { name: 'count 0' })[0]!);
   });
+
+  it('COMP-145: the default expansion is modal; overlay-compatible opens non-modally with the same instance and restores focus', async () => {
+    const showModal = vi.fn(function (this: HTMLDialogElement) { this.setAttribute('open', ''); });
+    const show = vi.fn(function (this: HTMLDialogElement) { this.setAttribute('open', ''); });
+    const close = vi.fn(function (this: HTMLDialogElement) { this.removeAttribute('open'); this.dispatchEvent(new Event('close')); });
+    Object.assign(HTMLDialogElement.prototype, { showModal, show, close });
+    const user = userEvent.setup();
+    await open('<p>::playground[a]</p><p>::playground[b]</p>', {
+      a: { component: StatefulComponent, title: 'Plain' },
+      b: { component: StatefulComponent, title: 'Compatible', expandedPreview: 'overlay-compatible' },
+    });
+    const [plain, compatible] = screen.getAllByRole('group', { name: /Plain|Compatible/ });
+    await user.click(within(plain!).getByRole('button', { name: 'Expand' }));
+    expect(showModal).toHaveBeenCalledTimes(1);
+    expect(show).not.toHaveBeenCalled();
+    expect(plain!.querySelector('dialog')!.getAttribute('data-doq-expanded')).toBe('modal');
+    await user.click(within(plain!).getByRole('button', { name: 'Close' }));
+
+    const live = within(compatible!).getByRole('button', { name: 'count 0' });
+    await user.click(live);
+    const expand = within(compatible!).getByRole('button', { name: 'Expand' });
+    await user.click(expand);
+    const dialog = compatible!.querySelector('dialog')!;
+    expect(show).toHaveBeenCalledTimes(1);
+    expect(showModal).toHaveBeenCalledTimes(1);
+    expect(dialog.getAttribute('data-doq-expanded')).toBe('overlay-compatible');
+    expect(dialog.contains(live)).toBe(true);
+    await user.click(live);
+    expect(live.textContent).toBe('count 2');
+    await user.click(within(dialog).getByRole('button', { name: 'Close' }));
+    expect(dialog.contains(live)).toBe(false);
+    expect(live.textContent).toBe('count 2');
+    expect(document.activeElement).toBe(expand);
+  });
+
+  it('COMP-146: an overlay-compatible preview left expanded is removed when the route changes', async () => {
+    Object.assign(HTMLDialogElement.prototype, { show(this: HTMLDialogElement) { this.setAttribute('open', ''); } });
+    const user = userEvent.setup();
+    const { router } = await open('<p>::playground[c]</p>', { c: { component: StatefulComponent, title: 'C', expandedPreview: 'overlay-compatible' } });
+    await user.click(await screen.findByRole('button', { name: 'Expand' }));
+    await router.navigateByUrl('/docs/other');
+    await screen.findByText('Other body');
+    expect(document.querySelector('.doq-pg-stage')).toBeNull();
+  });
 });

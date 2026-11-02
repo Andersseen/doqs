@@ -40,6 +40,16 @@ export interface DoqPlaygroundCode {
 /** A preview-container width. `width` is any CSS length; it never exceeds the available space. */
 export interface DoqPreviewSize { readonly label: string; readonly width: string }
 
+/**
+ * How the expanded preview presents the live component.
+ * - `'modal'` (default): a native modal `<dialog>` in the browser's top layer, with an inert background, a focus trap and Escape to close.
+ *   Overlays a component appends to `<body>` render beneath the top layer and are unreachable.
+ * - `'overlay-compatible'`: a non-modal panel in ordinary stacking order, so a consumer's body-mounted overlays (select lists, popovers, dialogs)
+ *   stay visible and interactive above it. It is NOT modal: the page behind stays interactive, focus is not trapped and Escape is left to the
+ *   consumer's overlays. The Close button closes it.
+ */
+export type DoqExpandedPreviewMode = 'modal' | 'overlay-compatible';
+
 export interface DoqPlaygroundDefinition {
   /** A consumer-owned standalone component. A directive needs a small wrapper component that applies it. */
   readonly component: Type<unknown>;
@@ -51,6 +61,8 @@ export interface DoqPlaygroundDefinition {
   readonly code?: readonly DoqPlaygroundCode[];
   /** Preview widths; `false` hides the width switcher. Defaults to Responsive (100%), Mobile (320px) and Tablet (768px). */
   readonly previewSizes?: false | readonly DoqPreviewSize[];
+  /** Expanded preview behavior; defaults to `'modal'`. Opt into `'overlay-compatible'` for components whose overlays are mounted on `<body>`. */
+  readonly expandedPreview?: DoqExpandedPreviewMode;
 }
 
 export type DoqPlaygroundRegistry = Readonly<Record<string, DoqPlaygroundDefinition>>;
@@ -116,6 +128,7 @@ export function validateDoqPlaygrounds(registry: DoqPlaygroundRegistry | undefin
       if (!code?.label?.trim()) problems.push(`${at}, code ${index + 1}: "label" is required`);
       if (typeof code?.code !== 'string' && typeof code?.code !== 'function') problems.push(`${at}, code ${index + 1}: "code" must be a string or a function`);
     });
+    if (definition.expandedPreview !== undefined && definition.expandedPreview !== 'modal' && definition.expandedPreview !== 'overlay-compatible') problems.push(`${at}: "expandedPreview" must be "modal" or "overlay-compatible"`);
     if (definition.previewSizes) {
       if (!Array.isArray(definition.previewSizes) || !definition.previewSizes.length) problems.push(`${at}: "previewSizes" needs at least one size, or false`);
       else for (const size of definition.previewSizes) if (!size?.label?.trim() || !size.width?.trim()) problems.push(`${at}: every preview size needs a "label" and a "width"`);

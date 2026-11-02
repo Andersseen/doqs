@@ -8,6 +8,12 @@ import { apps, expect, expectClipboard, test } from './fixtures.ts';
 const base = apps.adoptionVolt.url;
 const group = (page: Page, name: string) => page.getByRole('group', { name, exact: true });
 const events = (playground: ReturnType<typeof group>) => playground.getByRole('list', { name: 'Events' });
+const hitTestable = (locator: ReturnType<Page['locator']>) =>
+  locator.evaluate((el) => {
+    const box = el.getBoundingClientRect();
+    const hit = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+    return !!hit && (el === hit || el.contains(hit));
+  });
 const rawHtml = async (page: Page, path: string) => (await page.request.get(`${base}${path}`)).text();
 
 test.describe('E2E-142 ADOPT-009 component documentation rendered by Doqs', () => {
@@ -121,36 +127,139 @@ test.describe('ADOPT-013 overlay interaction', () => {
     await expect(trigger).toBeFocused();
   });
 
-  // Doqs 0.9 expands a playground into a native modal <dialog>, which sits in the browser's top layer. Overlays that Volt UI appends to
-  // <body> (dialog, select dropdown) are NOT in the top layer. This records what is actually on top; it is a verified limitation, not a fix.
-  test('PLAY-03: overlays opened from the EXPANDED preview are checked against the top layer', async ({ page }) => {
+  // Default expansion is a native modal <dialog> in the browser's top layer: overlays Volt UI appends to <body> are NOT in the top layer
+  // and cannot be reached. This is the verified limitation (PLAY-03) that `expandedPreview: 'overlay-compatible'` opts out of (PLAY-04..06).
+  test('E2E-167 PLAY-03: in the default modal expansion a body-mounted Volt select list is attached but not hit-testable', async ({
+    page,
+  }) => {
     await page.goto(`${base}/docs/components/select`);
-    const select = group(page, 'volt-select');
+    const select = group(page, 'volt-select-modal');
     await select.getByRole('button', { name: 'Expand' }).click();
-    const expanded = page.getByRole('dialog', { name: /expanded preview/ });
+    const expanded = select.getByRole('dialog', { name: /expanded preview/ });
     await expect(expanded).toBeVisible();
+    expect(await expanded.evaluate((el) => (el as HTMLDialogElement).matches(':modal'))).toBe(true);
     await expanded.getByRole('combobox', { name: 'Fruit' }).click();
     const option = page.getByRole('option', { name: 'Banana' });
     await expect(option).toBeAttached();
-    const onTop = await option.evaluate((el) => {
-      const box = el.getBoundingClientRect();
-      const hit = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
-      return !!hit && (el === hit || el.contains(hit));
-    });
-    test.info().annotations.push({
-      type: 'overlay-in-expanded-preview',
-      description: onTop ? 'select dropdown reachable' : 'select dropdown hidden below the top layer',
-    });
-    if (onTop) {
-      await option.click();
-      await expect(events(select)).toContainText('Changed');
-    } else {
-      // The documented escape hatch: close the expanded preview and use the inline one, where the same overlay works.
-      await page.keyboard.press('Escape');
-      await select.getByRole('combobox', { name: 'Fruit' }).click();
-      await page.getByRole('option', { name: 'Banana' }).click();
-      await expect(events(select)).toContainText('Changed');
-    }
+    expect(await hitTestable(option)).toBe(false);
+    // The documented escape hatch for the default mode: close the expanded preview and use the inline one.
+    await page.keyboard.press('Escape');
+    await expect(expanded).toBeHidden();
+  });
+
+  test('E2E-168 PLAY-04: the overlay-compatible expansion keeps the real Volt select list visible, hit-testable and operable (mouse)', async ({
+    page,
+  }) => {
+    await page.goto(`${base}/docs/components/select`);
+    const select = group(page, 'volt-select');
+    const expand = select.getByRole('button', { name: 'Expand' });
+    await expand.click();
+    const expanded = select.getByRole('dialog', { name: /expanded preview/ });
+    await expect(expanded).toBeVisible();
+    expect(await expanded.evaluate((el) => (el as HTMLDialogElement).matches(':modal'))).toBe(false);
+    const combobox = expanded.getByRole('combobox', { name: 'Fruit' });
+    await combobox.click();
+    const option = page.getByRole('option', { name: 'Banana' });
+    await expect(option).toBeVisible();
+    expect(await hitTestable(option)).toBe(true);
+    await option.click();
+    await expect(events(select)).toContainText('Changed');
+    await expect(combobox).toContainText(/banana/i);
+    await expanded.getByRole('button', { name: 'Close' }).click();
+    await expect(expanded).toBeHidden();
+    await expect(expand).toBeFocused();
+    await expect(select.getByRole('combobox', { name: 'Fruit' })).toContainText(/banana/i);
+    await select.getByRole('combobox', { name: 'Fruit' }).click();
+    await expect(page.getByRole('option', { name: 'Grapes' })).toBeVisible();
+    await page.keyboard.press('Escape');
+  });
+
+  test('E2E-169 PLAY-04: the overlay-compatible select works by keyboard alone and Escape closes the list, not the preview', async ({
+    page,
+  }) => {
+    await page.goto(`${base}/docs/components/select`);
+    const select = group(page, 'volt-select');
+    await select.getByRole('button', { name: 'Expand' }).focus();
+    await page.keyboard.press('Enter');
+    const expanded = select.getByRole('dialog', { name: /expanded preview/ });
+    await expect(expanded).toBeVisible();
+    const combobox = expanded.getByRole('combobox', { name: 'Fruit' });
+    await combobox.focus();
+    await page.keyboard.press('Enter');
+    await expect(page.getByRole('option', { name: 'Apple' })).toBeVisible();
+    expect(await hitTestable(page.getByRole('option', { name: 'Apple' }))).toBe(true);
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('option', { name: 'Apple' })).toHaveCount(0);
+    await expect(expanded).toBeVisible();
+    await combobox.focus();
+    await page.keyboard.press('Enter');
+    await expect(page.getByRole('option', { name: 'Apple' })).toHaveAttribute('data-active', '');
+    await page.keyboard.press('ArrowDown');
+    await expect(page.getByRole('option', { name: 'Banana' })).toHaveAttribute('data-active', '');
+    await page.keyboard.press('Enter');
+    await expect(events(select)).toContainText('Changed');
+    await expect(combobox).not.toContainText('Select a fruit');
+    await expanded.getByRole('button', { name: 'Close' }).focus();
+    await page.keyboard.press('Enter');
+    await expect(expanded).toBeHidden();
+    await expect(select.getByRole('button', { name: 'Expand' })).toBeFocused();
+  });
+
+  test('E2E-170 PLAY-05: the real Volt popover opens from the overlay-compatible preview; Escape closes it, the preview survives', async ({
+    page,
+  }) => {
+    await page.goto(`${base}/docs/components/popover`);
+    const popover = group(page, 'voltPopover');
+    await popover.getByRole('button', { name: 'Expand' }).click();
+    const expanded = popover.getByRole('dialog', { name: /expanded preview/ });
+    const trigger = expanded.getByRole('button', { name: 'Show details' });
+    await trigger.click();
+    const content = page.getByText('Set the width and height of the layer.');
+    await expect(content).toBeVisible();
+    expect(await hitTestable(content)).toBe(true);
+    await expect(events(popover)).toContainText('Open change');
+    await page.keyboard.press('Escape');
+    await expect(content).toHaveCount(0);
+    await expect(expanded).toBeVisible();
+    await expanded.getByRole('button', { name: 'Close' }).click();
+    await expect(expanded).toBeHidden();
+    await popover.getByRole('button', { name: 'Show details' }).click();
+    await expect(content).toBeVisible();
+    await page.keyboard.press('Escape');
+  });
+
+  test('E2E-171 PLAY-06: the real Volt dialog opens above the overlay-compatible preview, closes by itself and restores focus', async ({
+    page,
+  }) => {
+    await page.goto(`${base}/docs/components/dialog`);
+    const playground = group(page, 'voltDialogRoot');
+    await playground.getByRole('button', { name: 'Expand' }).click();
+    const expanded = playground.getByRole('dialog', { name: /expanded preview/ });
+    const trigger = expanded.getByRole('button', { name: 'Open dialog' });
+    await trigger.click();
+    const dialog = page.getByRole('dialog', { name: 'Delete project?' });
+    await expect(dialog).toBeVisible();
+    const confirm = dialog.getByRole('button', { name: 'Confirm' });
+    await expect(confirm).toBeFocused();
+    expect(await hitTestable(confirm)).toBe(true);
+    await confirm.click();
+    await expect(dialog).toHaveCount(0);
+    await expect(events(playground)).toContainText('Closed');
+    await expect(trigger).toBeFocused();
+    await expect(expanded).toBeVisible();
+    await expanded.getByRole('button', { name: 'Close' }).click();
+    await expect(expanded).toBeHidden();
+  });
+
+  test('E2E-172 PLAY-07: the default button playground still expands as a native modal', async ({ page }) => {
+    await page.goto(`${base}/docs/components/button`);
+    const button = group(page, 'volt-button');
+    await button.getByRole('button', { name: 'Expand' }).click();
+    const expanded = button.getByRole('dialog', { name: /expanded preview/ });
+    await expect(expanded).toBeVisible();
+    expect(await expanded.evaluate((el) => (el as HTMLDialogElement).matches(':modal'))).toBe(true);
+    await expanded.getByRole('button', { name: 'Close' }).click();
+    await expect(expanded).toBeHidden();
   });
 });
 
