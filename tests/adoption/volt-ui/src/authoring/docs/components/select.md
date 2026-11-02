@@ -11,6 +11,10 @@ order: 4
 
 ::playground[volt-select]
 
+The same select with the default modal expansion (a control for the overlay-compatible mode above):
+
+::playground[volt-select-modal]
+
 ## Usage
 
 ```html title=select.html

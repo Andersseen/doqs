@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.15.0
+
+Playground overlay interoperability. Additive: nothing was removed or changed.
+
+### Added
+
+- **`expandedPreview: 'modal' | 'overlay-compatible'`** on `DoqPlaygroundDefinition` (type `DoqExpandedPreviewMode`). The default `'modal'` is the unchanged native modal `<dialog>`. `'overlay-compatible'` opens the same dialog non-modally in ordinary stacking order so overlays a component appends to `<body>` (select lists, popovers, dialogs) stay visible and interactive. It is not modal: the background stays interactive, focus is not trapped and Escape is left to the consumer's overlays; the Close button closes it. The component instance, its state, outputs and events survive in both modes. `validateDoqPlaygrounds` rejects other values.
+- **`--doq-playground-expanded-z-index`** (default 50, the common overlay level: overlays appended later to `<body>` win ties), optional stacking of the overlay-compatible panel.
+
+### Verified
+
+- Real Volt UI select, popover and dialog playgrounds (pinned checkout) with mouse and keyboard, and a default-mode control that records the original top-layer limitation.
+
 ## 0.14.0
 
 True documentation hydration. Internal route resolution prepares the selected Markdown document before `DoqDocsComponent` creates its first view, so direct production loads hydrate the existing prerendered DOM. Additive: no exported type, function, configuration key, frontmatter key, route or `--host-docs-*` token changed. Verified with Angular 21.2 and 22.2, Analog 2.9.2, production Showcase A/B and official site output, and packed initialized Angular 21 embedded/docs-first and Angular 22 embedded consumers. This release follows published 0.13.0 and remains gated by the normal CI release workflow.

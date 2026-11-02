@@ -16,7 +16,7 @@
 
 Doqs adds a documentation region to an Angular application that already uses [Analog](https://analogjs.org). Markdown files become routes, a grouped sidebar, a table of contents, previous/next links and a mobile drawer, prerendered as static HTML. Your header, footer, router, theme and components stay yours; Doqs sets no global `html` or `body` styles.
 
-Optional, each off until you enable it: Pagefind full-text search, versioned documentation, API reference pages generated from your TypeScript, your own standalone Angular components placed in Markdown with `::demo[id]`, and interactive playgrounds (`::playground[id]`) that add controls for the component's inputs, an output inspector, preview widths, an expanded view, reset and copyable usage code. Built in: callouts, accessible tabs, code groups, steps and titled code.
+Optional, each off until you enable it: Pagefind full-text search, versioned documentation, API reference pages generated from your TypeScript, your own standalone Angular components placed in Markdown with `::demo[id]`, and interactive playgrounds (`::playground[id]`) that add controls for the component's inputs, an output inspector, preview widths, an expanded view (native modal by default; `expandedPreview: 'overlay-compatible'` for components whose overlays are mounted on `<body>`), reset and copyable usage code. Built in: callouts, accessible tabs, code groups, steps and titled code.
 
 This README is deliberately short. The guides live in the official documentation, whose Markdown source is [`apps/site/src/content/docs`](https://github.com/Andersseen/doqs/tree/main/apps/site/src/content/docs); the site itself is a Doqs application.
 

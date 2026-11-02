@@ -323,6 +323,8 @@
 .doq-pg-dialog { width: min(96vw,80rem); max-width: 96vw; height: min(92vh,60rem); max-height: 92vh; padding: 0; border: 1px solid var(--doq-border); border-radius: .85rem; background: var(--doq-background); color: var(--doq-foreground); }
 .doq-pg-dialog[open] { display: flex; flex-direction: column; }
 .doq-pg-dialog::backdrop { background: rgb(0 0 0 / .55); }
+.doq-pg-dialog[data-doq-expanded="overlay-compatible"] { position: fixed; inset: .75rem; z-index: var(--doq-playground-expanded-z-index, 50); width: auto; max-width: none; height: auto; max-height: none; margin: 0; box-shadow: 0 1.5rem 3rem rgb(0 0 0 / .35); }
+.doq-root:has(.doq-pg-dialog[data-doq-expanded="overlay-compatible"][open]),.doq-shell:has(.doq-pg-dialog[data-doq-expanded="overlay-compatible"][open]) { isolation: auto; }
 .doq-pg-dialog-bar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .75rem 1rem; border-bottom: 1px solid var(--doq-border); }
 .doq-pg-dialog-body { flex: 1; min-height: 0; padding: 1rem; overflow: auto; }
 .doq-pg-dialog-body .doq-pg-stage { min-height: 100%; }
